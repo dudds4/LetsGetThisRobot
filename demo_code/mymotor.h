@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include "myencoder.h"
 
+#include <stdio.h>
+
 // Motor constants
 
 const float R_ = 2.5;
@@ -34,14 +36,23 @@ struct Motor {
 	void update(int periodMS) 
 	{
     int encNew = enc.count();
-    int w_ = encNew - encLast;
+    int countDiff = encNew - encLast;
     
-    w = 0.2*w + 0.8*w_;
+//    1000 * (2 * pi ()) / (224.4*4) / periodMS = about = 7 / periodMS
+//    float w_ = (0.007f * countDiff) / periodMS;
+
+    double w_ = (7.0f * countDiff) / periodMS;
+    double scale = 0.4;
+    volatile double wScale = w_ * scale;
+        
+//    float w_ = encNew - encLast;
+    
+    w = wScale + ((1-scale) * w);
 
     encLast = encNew;
     
 		double error = setpoint - w;
-		float pTerm = Kp * error;
+		double pTerm = Kp * error;  
 		
 		iTerm = iTerm + Ki * error;
 
@@ -54,8 +65,8 @@ struct Motor {
     double result = pTerm + iTerm;
 
     // apply static friction offset
-    if(result > 100) result += 2000;
-    else if(result < -100) result -= 2000;
+    if(result > 100) result += 1000;
+    else if(result < -100) result -= 1000;
 
 //    bool applyCurrentLimit = true;
 //    float currentLimit = 1.65 * 1000; //mA
@@ -69,9 +80,15 @@ struct Motor {
 //        if(result > minV) result = minV;
 //    }
 
-    Serial.print(result); 
-
-
+    static unsigned cc = 0;
+    if(++cc > 100)
+    {
+      char buf[1000];
+      int l = sprintf(buf, "%d %d \n", w, w_);
+      buf[l] = '\0';
+      Serial.print(buf);
+    cc = 0;      
+    }
 		setVoltage(result);  
 	}
 	
@@ -91,15 +108,17 @@ private:
 	  const float MAX_V = 5000.0f;
 	  
 	  int pwm = (mV * 255.0f) / MAX_V;
+    if(pwm > 255) pwm = 255;
+    if(pwm < -255) pwm = -255;
 	  
 	  if(pwm > 0)
 	  {
 		  analogWrite(_pinH, pwm); 
-		  analogWrite(_pinL, 0);   
+		  digitalWrite(_pinL, LOW);   
 	  }
 	  else
 	  {
-		  analogWrite(_pinH, 0); 
+      digitalWrite(_pinH, LOW);
 		  analogWrite(_pinL, -1*pwm);   
 	  }
 	  
@@ -110,10 +129,10 @@ private:
 	int _pinH;
 	int _pinL;
 
-  int encLast = 0;
+  long long encLast = 0;
   
 	float setpoint = 0;
-	float w = 0;
+	double w = 0;
 	float Kp=0, Ki=0;
 	double iTerm = 0;
  
