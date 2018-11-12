@@ -3,24 +3,47 @@
 
 #include "nav.h"
 #include "myImu.h"
+#include "ir.h"
+#include "sensors.h"
 
 MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand) 
 {
-  const unsigned PERIOD = 10;
+  const unsigned PERIOD = 10; 
   static unsigned counter = PERIOD;
-  if(++counter < PERIOD) return lastCommand;
+  unsigned int ir1Array[] = {0,0,0,0,0};
+  if(++counter < PERIOD) {
+    for(int i = sizeof(ir1Array); i>0; i--) { //shift values
+      ir1Array[i] = ir1Array[i-1];
+    }
+    ir1Array[0] = analogRead(ir1);
+    return lastCommand;
+  }
   counter = 0;
-  
-  static bool initialized = false;
+
+  int sum = 0; 
+  for(int i = sizeof(ir1Array); i>0; i--) { //take avg and discard rly out-of-range values
+      sum = sum + ir1Array[i];
+  }
+  double ir1Avg = sum / 5;
+
+  /****** IMU stuff ******/
+  static bool initialized = false;                   
   static sensors_event_t initial_imu;
   if(!initialized)
   {
      bno.getEvent(&initial_imu);  
   }
+  initialized = 1; 
+	
+  /*********************************** METAL WALL ***********************************/
+  static bool rightWall = false;
+  if(irAnalogToCm(ir1Avg) < 20 && !rightWall)
+    rightWall = true;
+  if(rightWall) {
+    //turn left
+    
+  }
   
-	// example based on imu branch code
-	// not actually good code
-
   return driveStraight(bno, initial_imu, lastCommand);
 }
 

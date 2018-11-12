@@ -6,20 +6,6 @@
 #include <utility/imumaths.h>
 #include "nav.h"
 
-void initializeIMU(Adafruit_BNO055& bno)
-{
-  /* Initialise the sensor */
-  if(!bno.begin()) 
-  {
-    Serial.print("No BNO055 detected!");
-    while(1);
-  }
-
-  delay(1000);
-
-  bno.setExtCrystalUse(true);
-}
-
 #ifndef MAX
 #define MAX(a,b) (a > b ? a : b)
 #endif

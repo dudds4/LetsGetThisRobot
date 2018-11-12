@@ -1,5 +1,7 @@
 #include "myImu.h"
 #include "controls.h"
+#include "ir.h"
+#include "sensors.h"
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 sensors_event_t initial_imu;
@@ -27,6 +29,7 @@ void setup(void)
   // Serial.begin(9600);
 
   initializeIMU(bno);
+  initializeIR();
 
   bno.getEvent(&initial_imu);
 
