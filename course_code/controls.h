@@ -31,35 +31,48 @@ MotorCommand wallZigzag(Adafruit_BNO055& bno, sensors_event_t initial, MotorComm
   sensors_event_t imu_event; 
   bno.getEvent(&imu_event);
 
-  int angle = imu_event.orientation.z;
-  int origin = 0;
+  int origin = imu_event.orientation.x;
   
-
+  bool clockwise = 1;
+  
   int differenceY = initial.orientation.y - imu_event.orientation.y;
-  int differenceX = initial.orientation.z - imu_event.orientation.z;
+  int differenceX = initial.orientation.x - imu_event.orientation.x;
   
   if(abs(differenceY) > 5) 
-  { // Robot is on the wall
+  { // Robot has just got on the wall
 
       //begin controlling the motors
       //speed up the left motor first causing a right
-      
-      if( abs(differenceX) < 45 && (origin - angle < 0) )
-      {
-        lastCommand.leftV += 30;
-        lastCommand.rightV -= 30;
-      }
-  
-      else( abs(differenceX) > 45 && (origin - angle > 0) )
-      {
-        //set init to curr here 
-        initial.orientation.z = imu.orientation.z;
-        lastCommand.leftV -= 30;
-        lastCommand.rightV += 30;
-      }
 
+      //robot is now "steady" on the wall
+      if(abs(differenceY) < 1 )
+      {
+          if( abs(differenceX) < 45 && (clockwise) )
+          {
+            lastCommand.leftV += 30;
+            lastCommand.rightV -= 30;
+          }
+    
+          clockwise = 0;
+          //origin = imu_event.orientation.x;
+    
+          //
+          else( (abs(differenceX) < 45  || abs(differenceX) > 315 ) && (!clockwise) )
+          {
+           
+            //set init to curr here 
+            lastCommand.leftV -= 30;
+            lastCommand.rightV += 30;
+          }
+    
+          clockwise = 1;
+
+      }
+      
   }
-  else{}
+  else{
+   //perform turning function to turn around 
+   }
   
   
 }
