@@ -6,18 +6,24 @@
 struct TurnState 
 {
   bool initialized = false;
-  int initialYaw;
-  int lastYaw;
-  int goalYaw;
+  double initialYaw;
+  double lastYaw;
+  double goalYaw;
 };
 
 Adafruit_BNO055 g_bno;
 
-int getYaw()
+double getYaw()
 {
     sensors_event_t imu_event; 
     g_bno.getEvent(&imu_event);
     return imu_event.orientation.x;
+}
+
+double getVertAccel()
+{
+    imu::Vector<3> xyz = g_bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+    return xyz[0]; 
 }
 
 bool turnOnSpot(TurnState ts, int deg, MotorCommand* mc)
