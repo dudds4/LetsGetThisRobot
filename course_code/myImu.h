@@ -2,7 +2,6 @@
 #define MYIMU_H
 
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include "nav.h"
@@ -58,14 +57,16 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
   if(abs(diff) > 3) 
   { // Robot went off course
     if((diff > 3 && diff < 180) || (diff < -180 && diff > -357)) 
-    { 	// Robot turned left
+    { 	
+        // Robot turned left
       	//speed up left motor
-		lastCommand.leftV += 30;
+		    lastCommand.leftV += 30;
     }
     else if ((diff > -180 && diff <-3) || (diff < 357 && diff> 180)) 
-    { 	// Robot turned right
+    { 	
+        // Robot turned right
       	//speed up right motor
-		lastCommand.rightV += 30;
+		    lastCommand.rightV += 30;
     }
   }
   else
