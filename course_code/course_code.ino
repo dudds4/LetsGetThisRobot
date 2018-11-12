@@ -9,6 +9,7 @@ enum CourseState
 {
   WallFollowing,
   Ramp1,
+  Zigzag,
   Search,
   Return1,
   Ramp2,
@@ -41,6 +42,7 @@ void loop(void)
   {
     case WallFollowing  : motCmd = wallFollow(motCmd);  break;
     case Ramp1          : motCmd = climbRamp1(/* add params */);  break;
+    case Zigzag         : motCmd = wallZigzag(/* add params */);  break;
     case Search         : motCmd = search(/* add params */);      break;
     case Return1        : motCmd = return1(/* add params */);     break;
     case Ramp2          : motCmd = ramp2(/* add params */);       break;
