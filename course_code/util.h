@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include "myImu.h"
+#include "controls.h"
 
 struct TurnState 
 {
