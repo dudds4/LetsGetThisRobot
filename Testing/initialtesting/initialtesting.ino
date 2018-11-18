@@ -1,6 +1,7 @@
 #include "myImu.h"
 #include "sensors.h"
 #include "controls.h"
+
 #include <Adafruit_BNO055.h>
 
 static MotorCommand newCommand;
@@ -14,7 +15,7 @@ sensors_event_t initial_imu;
 void setup() {
   Serial.begin(9600);
   
-  initializeIMU(bno);
+//  initializeIMU(bno);
   
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT); 
@@ -23,12 +24,30 @@ void setup() {
   
   // change up PWM frequencies for motor PWM pins
   // Timer 3 for outputs 2/3/5
-  TCCR3B &= ~(0x07);
-  TCCR3B |= 0x02;
+  bool fastpwm = false;
+
+  if(fastpwm)
+  {
+    // change prescaler
+    TCCR3B &= ~(0x07);
+    TCCR3B |= 0x02;
   
-  // Timer 4 for outputs 6,7,8  
-  TCCR4B &= ~(0x07);
-  TCCR4B |= 0x02;
+    // set wave form generation mode to phase correct
+    TCCR3A &= ~(0x03);
+    TCCR3B &= ~(0x18);
+    TCCR3A |= 0x01;
+    
+    
+    // Timer 4 for outputs 6,7,8  
+    TCCR4B &= ~(0x07);
+    TCCR4B |= 0x02;
+  
+    // set wave form generation mode to phase correct
+    TCCR4A &= ~(0x03);
+    TCCR4B &= ~(0x18);
+    TCCR4A |= 0x01;
+  }
+
 
 //  lastCommand.leftV = 200;
 //  lastCommand.rightV = 200;
@@ -37,41 +56,21 @@ void setup() {
 
 bool doneTurn = false;
 
-void setMotorVoltage(int EN, int IN1, int IN2, int v)
-{
-   if(v > 255) v = 255;
-   else if(v < -255) v = -255;
-   
-   digitalWrite(EN, HIGH);// motor speed 
-   if(v > 0)
-   {
-     analogWrite(IN2, v); //right motor
-     digitalWrite(IN1,LOW); 
-   }
-   else
-   {
-     analogWrite(IN1, -1*v); //right motor
-     digitalWrite(IN2,LOW);  
-   }
-}
-
 void loop() {
   ir_data1 = analogRead(ir1);
   ir_data2 = analogRead(ir2);
-  
-  //initMotors();
-  //newCommand = driveStraight(bno, initial_imu, lastCommand);
-  //Serial.print("Distance: "); Serial.println(ir_data1); 
-  //if(ir_data1 > 400) { //NOTE: 13 inches (33cm)
-    //Serial.println(irAnalogToCm(ir_data1));
-  if(!doneTurn)
-    doneTurn = turnOnSpot(ts, 90, &newCommand);
-  else
-  {
-   setMotorVoltage(ENA, IN1, IN2, 0);
-   setMotorVoltage(ENA2, IN3, IN4, 0);
-   while(1){}  
-  }
+
+  newCommand.rightV = 200;
+  newCommand.leftV= 200;
+
+//  if(!doneTurn)
+//    doneTurn = turnOnSpot(ts, 90, &newCommand);
+//  else
+//  {
+//   setMotorVoltage(ENA, IN1, IN2, 0);
+//   setMotorVoltage(ENA2, IN3, IN4, 0);
+//   while(1){}  
+//  }
   
    setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
    setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);

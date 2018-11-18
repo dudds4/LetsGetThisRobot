@@ -4,6 +4,26 @@
 #include "myImu.h"
 #include "controls.h"
 
+
+void setMotorVoltage(int EN, int IN1, int IN2, int v)
+{
+   if(v > 255) v = 255;
+   else if(v < -255) v = -255;
+   
+   digitalWrite(EN, HIGH);// motor speed 
+   if(v > 0)
+   {
+     analogWrite(IN2, v); //right motor
+     digitalWrite(IN1,LOW); 
+   }
+   else
+   {
+     analogWrite(IN1, -1*v); //right motor
+     digitalWrite(IN2,LOW);  
+   }
+}
+
+
 struct TurnState 
 {
   bool initialized = false;
