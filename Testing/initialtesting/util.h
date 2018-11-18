@@ -21,10 +21,11 @@ int getYaw()
     return imu_event.orientation.x;
 }
 
-bool turnOnSpot(TurnState ts, int deg, MotorCommand* mc)
+bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
 {
   if(!ts.initialized)
   {
+    Serial.println("initializing");
     ts.initialYaw = getYaw();
     ts.lastYaw = ts.initialYaw;
     ts.goalYaw = ts.initialYaw + deg;
@@ -47,6 +48,10 @@ bool turnOnSpot(TurnState ts, int deg, MotorCommand* mc)
 
   // compute directions to turn
   int diff =  ts.goalYaw - yaw;
+
+  Serial.print(yaw);
+  Serial.print(" ");
+  Serial.println(ts.goalYaw);
   
   // case 1: we've finished the turn
   const int DONE_THRESHOLD = 3;
@@ -57,10 +62,10 @@ bool turnOnSpot(TurnState ts, int deg, MotorCommand* mc)
       return true;
   }
 
-  const int MOTOR_V = 100;
+  const int MOTOR_V = 200;
   
   // case 2: we need to turn CW
-  if(diff > 0)
+  if(diff < 0)
   {
     mc->leftV = MOTOR_V;
     mc->rightV = -1 * MOTOR_V;

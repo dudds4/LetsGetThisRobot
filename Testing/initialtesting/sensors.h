@@ -21,9 +21,8 @@ void initializeIMU(Adafruit_BNO055& bno)
     while(1);
   }
 
-  delay(1000);
-
   bno.setExtCrystalUse(true);
+
 }
 
 #endif // SENSORS_H

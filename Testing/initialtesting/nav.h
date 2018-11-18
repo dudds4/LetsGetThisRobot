@@ -3,7 +3,7 @@
 
 #define MOTOR_V_MAX 255
 
-int IN1=4;
+int IN1=8;
 int IN2=5;
 int ENA=10;
 

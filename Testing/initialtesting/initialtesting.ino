@@ -20,48 +20,61 @@ void setup() {
   pinMode(IN2,OUTPUT); 
   pinMode(IN3,OUTPUT); 
   pinMode(IN4,OUTPUT); 
+  
+  // change up PWM frequencies for motor PWM pins
+  // Timer 3 for outputs 2/3/5
+  TCCR3B &= ~(0x07);
+  TCCR3B |= 0x02;
+  
+  // Timer 4 for outputs 6,7,8  
+  TCCR4B &= ~(0x07);
+  TCCR4B |= 0x02;
 
-  lastCommand.leftV = 200;
-  lastCommand.rightV = 200;
+//  lastCommand.leftV = 200;
+//  lastCommand.rightV = 200;
    
+}
+
+bool doneTurn = false;
+
+void setMotorVoltage(int EN, int IN1, int IN2, int v)
+{
+   if(v > 255) v = 255;
+   else if(v < -255) v = -255;
+   
+   digitalWrite(EN, HIGH);// motor speed 
+   if(v > 0)
+   {
+     analogWrite(IN2, v); //right motor
+     digitalWrite(IN1,LOW); 
+   }
+   else
+   {
+     analogWrite(IN1, -1*v); //right motor
+     digitalWrite(IN2,LOW);  
+   }
 }
 
 void loop() {
   ir_data1 = analogRead(ir1);
   ir_data2 = analogRead(ir2);
+  
   //initMotors();
   //newCommand = driveStraight(bno, initial_imu, lastCommand);
   //Serial.print("Distance: "); Serial.println(ir_data1); 
   //if(ir_data1 > 400) { //NOTE: 13 inches (33cm)
     //Serial.println(irAnalogToCm(ir_data1));
-  bool tos = turnOnSpot(ts, 90, &newCommand);
-
-   digitalWrite(ENA, HIGH);// motor speed 
-   if(newCommand.rightV > 0)
-   {
-     analogWrite(IN2, newCommand.rightV); //right motor
-     digitalWrite(IN1,LOW); 
-   }
-   else
-   {
-     analogWrite(IN1, -1*newCommand.rightV); //right motor
-     digitalWrite(IN2,LOW);  
-   }
-
-   digitalWrite(ENA2, HIGH);
-   if(newCommand.leftV > 0)
-   {
-     analogWrite(IN4, newCommand.leftV); //right motor
-     digitalWrite(IN3,LOW); 
-   }
-   else
-   {
-     analogWrite(IN3, -1*newCommand.leftV); //right motor
-     digitalWrite(IN4,LOW);  
-   }
+  if(!doneTurn)
+    doneTurn = turnOnSpot(ts, 90, &newCommand);
+  else
+  {
+   setMotorVoltage(ENA, IN1, IN2, 0);
+   setMotorVoltage(ENA2, IN3, IN4, 0);
+   while(1){}  
+  }
   
-  Serial.println(tos);
-  //}
-  delay(600);
-  //motortest();
+   setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
+   setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);
+  
+  delay(20);
 }
