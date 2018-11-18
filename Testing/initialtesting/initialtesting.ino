@@ -6,7 +6,7 @@
 static MotorCommand newCommand;
 static MotorCommand lastCommand;
 static TurnState ts;
-//ts.initialized = false;
+//ts.initialized = true;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 sensors_event_t initial_imu;
@@ -15,6 +15,7 @@ void setup() {
   Serial.begin(9600);
   
   initializeIMU(bno);
+  initializeIR();
   
   pinMode(IN1,OUTPUT);
   pinMode(IN2,OUTPUT); 
@@ -30,8 +31,8 @@ void setup() {
   TCCR4B &= ~(0x07);
   TCCR4B |= 0x02;
 
-//  lastCommand.leftV = 200;
-//  lastCommand.rightV = 200;
+  lastCommand.leftV = 200;
+  lastCommand.rightV = 200;
    
 }
 
@@ -56,25 +57,37 @@ void setMotorVoltage(int EN, int IN1, int IN2, int v)
 }
 
 void loop() {
-  ir_data1 = analogRead(ir1);
-  ir_data2 = analogRead(ir2);
+  //ir_data1 = analogRead(ir1);
+  //ir_data2 = analogRead(ir2);
   
   //initMotors();
   //newCommand = driveStraight(bno, initial_imu, lastCommand);
-  //Serial.print("Distance: "); Serial.println(ir_data1); 
-  //if(ir_data1 > 400) { //NOTE: 13 inches (33cm)
-    //Serial.println(irAnalogToCm(ir_data1));
+
+  //if(getIR()); //updates ir values
+   //Serial.println("Updated IR");
+
+  newCommand = driveStraight(bno, initial_imu, lastCommand);
+
+  /*if(ir1Avg > 450) {
+    doneTurn = false;
+  }
   if(!doneTurn)
+    Serial.println("turn");*/
+  /*if(!doneTurn) {
     doneTurn = turnOnSpot(ts, 90, &newCommand);
-  else
+  }
+  else     
+    newCommand = driveStraight(bno, initial_imu, lastCommand);*/
+  
+  /*else
   {
    setMotorVoltage(ENA, IN1, IN2, 0);
    setMotorVoltage(ENA2, IN3, IN4, 0);
    while(1){}  
-  }
+  }*/
   
-   setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
-   setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);
+  // setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
+  // setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);
   
   delay(20);
 }
