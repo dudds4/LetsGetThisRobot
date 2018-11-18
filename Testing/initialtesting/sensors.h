@@ -1,8 +1,11 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#define ir1    8 // Front
-#define ir2    9 // Right side
+#define ir1    0 // Front
+#define ir2    1 // Right side
+
+uint16_t ir_data1 = 0;
+uint16_t ir_data2 = 0;
 
 void initializeIR() {
   pinMode(ir1, INPUT);

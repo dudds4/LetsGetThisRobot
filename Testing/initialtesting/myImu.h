@@ -22,7 +22,7 @@ MotorCommand translateWithinLimits(MotorCommand c)
   	int offset = MAX(c.leftV - MOTOR_V_MAX, c.rightV - MOTOR_V_MAX);
   	c.leftV -= offset;
   	c.rightV -= offset;
-   Serial.println("positive max");
+   //Serial.println("positive max");
   }
 
   if(c.leftV < -1 * MOTOR_V_MAX || c.rightV < -1 * MOTOR_V_MAX)
@@ -30,18 +30,19 @@ MotorCommand translateWithinLimits(MotorCommand c)
   	int offset = -1 * MIN(c.leftV + MOTOR_V_MAX, c.rightV + MOTOR_V_MAX);
   	c.leftV += offset;
   	c.rightV += offset;
-   Serial.println("negative max");
+   //Serial.println("negative max");
   }
 
    digitalWrite(ENA, HIGH);// motor speed 
-   analogWrite(IN1, 200); //right motor
-   digitalWrite(IN2,LOW);
+   analogWrite(IN2, c.rightV); //right motor
+   digitalWrite(IN1,LOW);
 
    digitalWrite(ENA2, HIGH);// motor speed  
-   analogWrite(IN2, 200); //left motor
-   digitalWrite(IN4,LOW);
+   analogWrite(IN4, c.leftV); //left motor
+   digitalWrite(IN3,LOW);
    
-   Serial.println("Driving at good speed");
+   //Serial.print("rightV: "); Serial.println(c.rightV);
+   //Serial.print("leftV: "); Serial.println(c.leftV);
 }
 
 MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorCommand lastCommand)
@@ -73,7 +74,7 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
   	// double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
   	// lastCommand.leftV = 0.5 * avg + 0.5 * lastCommand.leftV;
   	// lastCommand.rightV = 0.5 * avg + 0.5 * lastCommand.rightV;
-   Serial.println("driving straight");
+   //Serial.println("imu: "); Serial.println(initial.orientation.x);
   }
 
   return translateWithinLimits(lastCommand);
@@ -82,12 +83,12 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
 
 void motortest() {
    digitalWrite(ENA, HIGH);// motor speed 
-   analogWrite(IN1, 200); //right motor
-   digitalWrite(IN2,LOW);
+   analogWrite(IN2, 200); //right motor
+   digitalWrite(IN1,LOW);
 
    digitalWrite(ENA2, HIGH);// motor speed  
-   analogWrite(IN2, 200); //left motor
-   digitalWrite(IN4,LOW);
+   analogWrite(IN4, 200); //left motor
+   digitalWrite(IN3,LOW);
 }
 
 
