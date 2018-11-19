@@ -39,8 +39,8 @@ bool getIR()
     sum2 += ir2Array[i];
   }
 
-  ir1Array[0] = analogRead(ir1);
-  ir2Array[0] = analogRead(ir2);
+  ir1Array[0] = newValue1;
+  ir2Array[0] = newValue2;
   
   ir1Avg = sum1 / N;
   ir2Avg = sum2 / N;
