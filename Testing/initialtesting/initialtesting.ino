@@ -76,7 +76,7 @@ void loop()
     }
 
     // follow at 25 cm
-    lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
+    lastCommand = genWallFollow(260, GOAL_AVG, lastCommand);
   }
    
   /*if(ir1Avg > 450) {

@@ -181,27 +181,34 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
 {
   getIR();  //update ir readings
   
-  double rDist = irAnalogToCm(ir2Avg);
+  double rDist = ir2Avg;
   static int counter = 0;
   if(++counter > 10)
   {
-    Serial.print(ir2Avg);
-    Serial.print(" ");
-    Serial.println(rDist);
+    //Serial.print(ir2Avg);
+    //Serial.print(rDist);
+    //Serial.print(" ");
     counter=0;
   }
   double diff = distance - rDist;
+  Serial.print(rDist);
+  Serial.print(" ");
+  Serial.println(diff);
 
-  const double DIFF_THRESH = 0.5;
-  const int V_STEP = 10;
+  const double DIFF_THRESH = 5;
+  const int V_STEP = 40;
 
   if(diff > DIFF_THRESH)
   {
-    lastCommand.rightV += V_STEP;
+    lastCommand.rightV += V_STEP + 10;
+    //lastCommand.leftV -= (V_STEP -10) ;
+    Serial.print("Right motor increase"); Serial.println(lastCommand.rightV);
   }
   else if(diff < -1 * DIFF_THRESH)
   {
     lastCommand.leftV += V_STEP;
+    //lastCommand.rightV += (V_STEP -10);
+    Serial.print("Left motor increase"); Serial.println(lastCommand.leftV);
   }
   else
   {
@@ -209,7 +216,7 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
      double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
      double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
      
-     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
+     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV); //low pass
      lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
 
   }
