@@ -40,18 +40,6 @@ enum Test { DriveStraightWIMU, DriveStraightWIR };
 void loop() 
 {
   Test currentTest = DriveStraightWIR;
-
-  
-  
-  //ir_data1 = analogRead(ir1);
-  //ir_data2 = analogRead(ir2);
-  
-  //
-  //newCommand = driveStraight(bno, initial_imu, lastCommand);
-
-  //if(getIR()); //updates ir values
-   //Serial.println("Updated IR");
-
   const int GOAL_AVG = 200;
   
   if(currentTest == DriveStraightWIMU)
@@ -74,30 +62,11 @@ void loop()
       lastCommand.leftV = GOAL_AVG;
       lastCommand.rightV = GOAL_AVG; 
     }
-
+  
     // follow at 25 cm
     lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
   }
    
-  /*if(ir1Avg > 450) {
-    doneTurn = false;
-  }
-  if(!doneTurn)
-    Serial.println("turn");*/
-  /*if(!doneTurn) {
-    doneTurn = turnOnSpot(ts, 90, &newCommand);
-  }
-  else     
-    newCommand = driveStraight(bno, initial_imu, lastCommand);*/
-  
-  /*else
-  {
-   setMotorVoltage(ENA, IN1, IN2, 0);
-   setMotorVoltage(ENA2, IN3, IN4, 0);
-   while(1){}  
-  }*/
-  
-//   printCommand(lastCommand);
    setMotorVoltage(motorLeft, lastCommand.leftV);
    setMotorVoltage(motorRight, lastCommand.rightV);
   

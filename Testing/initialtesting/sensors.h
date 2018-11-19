@@ -7,14 +7,43 @@
 #define ir1    0 // Front
 #define ir2    1 // Right side
 
-/*IR Variables*/
-int xval=0;
-uint16_t ir_data1 = 0;
-uint16_t ir_data2 = 0;
-unsigned int ir1Array[] = {1,1,1,1,1};
-unsigned int ir2Array[] = {1,1,1,1,1};
-double ir1Avg, ir2Avg;
+struct IrSensor 
+{
+  
+  #define IR_SENSOR_FILTER_N 5
+  
+  IrSensor() = delete;
+  IrSensor(int p) : pin(p) {}
 
+  void refresh()
+  {
+    double sum = 0;
+    
+    // shift values up
+    for(int i = IR_SENSOR_FILTER_N - 1; i > 0; i--) 
+    {
+      filterArray[i] = filterArray[i-1];
+      sum += filterArray[i];  
+    }
+    
+    // read new value
+    filterArray[0] = analogRead(pin);
+    sum += filterArray[0];
+    avg = sum / IR_SENSOR_FILTER_N;
+  }
+  
+  double getAvg() { return avg; }
+  
+private:  
+  int pin;
+  unsigned int filterArray[IR_SENSOR_FILTER_N];
+  double avg = 0;
+};
+
+/*IR Variables*/
+
+IrSensor frontIr(ir1);
+IrSensor rightIr(ir2);
 
 void initializeIR() 
 {
@@ -24,26 +53,8 @@ void initializeIR()
 
 bool getIR() 
 {
-  int newValue1 = analogRead(ir1), newValue2 = analogRead(ir2);
-  int sum1 = newValue1, sum2 = newValue2;
-
-  int N = sizeof(ir1Array) / sizeof(ir1Array[0]);
-  
-  for(int i = N - 1; i > 0; i--) 
-  { 
-    //shift values
-    ir1Array[i] = ir1Array[i-1];
-    ir2Array[i] = ir2Array[i-1];
-        
-    sum1 += ir1Array[i];
-    sum2 += ir2Array[i];
-  }
-
-  ir1Array[0] = newValue1;
-  ir2Array[0] = newValue2;
-  
-  ir1Avg = sum1 / N;
-  ir2Avg = sum2 / N;
+  frontIr.refresh();
+  rightIr.refresh();
 
   return true;
 }

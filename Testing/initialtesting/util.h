@@ -180,12 +180,13 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
 MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastCommand)
 {
   getIR();  //update ir readings
-  
-  double rDist = irAnalogToCm(ir2Avg);
+
+  double irAvg = rightIr.getAvg();
+  double rDist = irAnalogToCm(irAvg);
   static int counter = 0;
   if(++counter > 10)
   {
-    Serial.print(ir2Avg);
+    Serial.print(irAvg);
     Serial.print(" ");
     Serial.println(rDist);
     counter=0;
