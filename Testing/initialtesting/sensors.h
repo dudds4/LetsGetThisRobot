@@ -35,14 +35,14 @@ bool getIR()
     ir1Array[i] = ir1Array[i-1];
     ir2Array[i] = ir2Array[i-1];
         
-    sum += ir1Array[i];
+    sum1 += ir1Array[i];
     sum2 += ir2Array[i];
   }
 
   ir1Array[0] = analogRead(ir1);
   ir2Array[0] = analogRead(ir2);
   
-  ir1Avg = sum / N;
+  ir1Avg = sum1 / N;
   ir2Avg = sum2 / N;
 
   return true;
