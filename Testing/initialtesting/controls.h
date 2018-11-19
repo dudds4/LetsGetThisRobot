@@ -2,8 +2,6 @@
 #define CONTROLS_H
 
 #include "nav.h"
-#include "myImu.h"
-#include "ir.h"
 #include "sensors.h"
 #include "util.h"
 
@@ -11,24 +9,36 @@ int facingWall = 0;
 
 MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand) 
 {
+
+
+unsigned int ir1Array[] = {0,0,0,0,0};
+unsigned int ir2Array[] = {0,0,0,0,0};
+
+
   const unsigned PERIOD = 10; 
   static unsigned counter = PERIOD;
-  unsigned int ir1Array[] = {0,0,0,0,0};
-  unsigned int ir2Array[] = {0,0,0,0,0};
-  if(++counter < PERIOD) {
-    for(int i = sizeof(ir1Array); i>0; i--) { //shift values
+  
+  if(++counter < PERIOD) 
+  {
+    for(int i = sizeof(ir1Array); i>0; i--) 
+    { //shift values
       ir1Array[i] = ir1Array[i-1];
       ir2Array[i] = ir2Array[i-1];
     }
+    
     ir1Array[0] = analogRead(ir1);
     ir2Array[0] = analogRead(ir2);
+    
     return lastCommand;
   }
+  
   counter = 0;
 
   int sum = 0; 
   int sum2 = 0;
-  for(int i = sizeof(ir1Array); i>0; i--) { //take avg and discard rly out-of-range values
+  for(int i = sizeof(ir1Array); i>0; i--) 
+  { 
+      //take avg and discard rly out-of-range values
       sum = sum + ir1Array[i];
       sum2 = sum2 + ir2Array[i];
   }
@@ -45,6 +55,7 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
   initialized = 1; 
 	
   /*********************************** METAL WALL ***********************************/  
+  
  /* static TurnState ts;
   static MotorCommand* mc;
   ts.initialized = false;
@@ -74,14 +85,14 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
     if(irAnalogToCm(ir2Avg) > 33) { //ir sensor on left
       bool tos = turnOnSpot(ts, -10, mc);
       for(int i = 0; i < 4; i++) {
-        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
+//        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
       }
     }
   }
 
   facingWall = initial_imu.orientation.x;
   
-  return driveStraight(bno, initial_imu, lastCommand);
+//  return driveStraight(bno, initial_imu, lastCommand);
 }
 
 MotorCommand climbRamp1(/* add params */) 

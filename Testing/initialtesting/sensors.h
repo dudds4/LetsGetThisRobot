@@ -1,6 +1,9 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
+#include <Adafruit_BNO055.h>
+#include <math.h>
+
 #define ir1    0 // Front
 #define ir2    1 // Right side
 
@@ -11,38 +14,48 @@ uint16_t ir_data2 = 0;
 unsigned int ir1Array[] = {1,1,1,1,1};
 unsigned int ir2Array[] = {1,1,1,1,1};
 double ir1Avg, ir2Avg;
-int sum, sum2; 
 
-void initializeIR() {
+
+void initializeIR() 
+{
   pinMode(ir1, INPUT);
   pinMode(ir2, INPUT);
 }
 
-bool getIR() {
+bool getIR() 
+{
   ir1Array[0] = analogRead(ir1);
   ir2Array[0] = analogRead(ir2);
-  sum = 0; sum2 = 0;
   
-  for(int i = sizeof(ir1Array)/sizeof(ir1Array[0]); i>0; i--) { //shift values
+  int sum = 0, sum2 = 0;
+
+  int N = sizeof(ir1Array) / sizeof(ir1Array[0]);
+  
+  for(int i = N - 1; i > 0; i--) 
+  { 
+    //shift values
     ir1Array[i] = ir1Array[i-1];
     ir2Array[i] = ir2Array[i-1];
-    ir1Array[0] = analogRead(ir1);
-    ir2Array[0] = analogRead(ir2);
-    sum = sum +  ir1Array[0];
-    sum2 = sum2 + ir2Array[0];
+        
+    sum = ir1Array[i];
+    sum2 = ir2Array[i];
   }
-  ir1Avg = sum / 5;
-  ir2Avg = sum2 / 5;
 
-  //outputVal = map(IR_data, 0, 1023, 0, 255);
+  ir1Array[0] = analogRead(ir1);
+  ir2Array[0] = analogRead(ir2);
+  
+  sum = ir1Array[0];
+  sum2 = ir2Array[0];
+  
+  ir1Avg = sum / N;
+  ir2Avg = sum2 / N;
 
- // Serial.print("Front: "); Serial.println(ir1Avg);
- // Serial.print("Left: "); Serial.println(ir2Avg);
-  /*if(ir1Avg > 450)
-    Serial.print("Turn");
-  else
-    Serial.print("Not yetttt");*/
-    return true;
+  return true;
+}
+
+inline double irAnalogToCm(int analogValue)
+{
+  return 1619.1 * pow(analogValue, -0.591);
 }
 
 void initializeIMU(Adafruit_BNO055& bno)

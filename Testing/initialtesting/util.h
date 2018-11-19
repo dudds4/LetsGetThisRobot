@@ -1,8 +1,30 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "myImu.h"
-#include "controls.h"
+void printCommand(MotorCommand mc)
+{
+  Serial.print(mc.leftV);
+  Serial.print(" ");
+  Serial.println(mc.rightV);  
+}
+
+void setMotorVoltage(Motor m, int v)
+{
+   if(v > 255) v = 255;
+   else if(v < -255) v = -255;
+   
+   digitalWrite(m.en, HIGH);// motor speed 
+   if(v > 0)
+   {
+     analogWrite(m.in2, v); //right motor
+     digitalWrite(m.in1, LOW); 
+   }
+   else
+   {
+     analogWrite(m.in1, -1*v); //right motor
+     digitalWrite(m.in2,LOW);  
+   }
+}
 
 struct TurnState 
 {
@@ -81,10 +103,129 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   return false;
 }
 
-bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand) { //make sure wall is on right at 20 cm away (use second ir)
+
+#ifndef MAX
+#define MAX(a,b) (a > b ? a : b)
+#endif
+
+#ifndef MIN
+#define MIN(a,b) (a > b ? b : a)
+#endif
+
+MotorCommand translateWithinLimits(MotorCommand c)
+{
+  // if either command voltage is higher than MOTOR_V_MAX, we slide them both back down
+  
+  if(c.leftV > MOTOR_V_MAX || c.rightV > MOTOR_V_MAX)
+  {
+    int offset = MAX(c.leftV - MOTOR_V_MAX, c.rightV - MOTOR_V_MAX);
+    c.leftV -= offset;
+    c.rightV -= offset;
+  }
+
+  if(c.leftV < -1 * MOTOR_V_MAX || c.rightV < -1 * MOTOR_V_MAX)
+  {
+    int offset = -1 * MIN(c.leftV + MOTOR_V_MAX, c.rightV + MOTOR_V_MAX);
+    c.leftV += offset;
+    c.rightV += offset;
+  }
+
+  if(c.leftV < 0) c.leftV = 0;
+  if(c.rightV < 0) c.rightV = 0;
+
+  return c;
+}
+
+MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorCommand lastCommand, int goalAvg)
+{
+   /* Get a new sensor event */ 
+  sensors_event_t imu_event; 
+  bno.getEvent(&imu_event);
+
+  int diff = initial.orientation.x - imu_event.orientation.x;
+
+  const int DIFF_THRESH = 5;
+  const int V_STEP = 10;
+  
+  if(abs(diff) > DIFF_THRESH) 
+  { // Robot went off course
+    if((diff > DIFF_THRESH && diff < 180) || (diff < -180 && diff > (-360 + DIFF_THRESH))) 
+    {   
+        // Robot turned left
+        //speed up left motor
+        lastCommand.leftV += V_STEP;
+    }
+    else if ((diff > -180 && diff < -1*DIFF_THRESH) || (diff < (360-DIFF_THRESH) && diff > 180)) 
+    {   
+        // Robot turned right
+        //speed up right motor
+        lastCommand.rightV += V_STEP;
+    }
+  }
+  else
+  {
+    // maybe slowly make rightV == leftV?
+     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
+     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+     
+     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
+     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
+
+  }
+
+  return translateWithinLimits(lastCommand);
+
+}
+
+MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastCommand)
+{
+  getIR();  //update ir readings
+  
+  double rDist = irAnalogToCm(ir2Avg);
+  static int counter = 0;
+  if(++counter > 10)
+  {
+    Serial.print(ir2Avg);
+    Serial.print(" ");
+    Serial.println(rDist);
+    counter=0;
+  }
+  double diff = distance - rDist;
+
+  const double DIFF_THRESH = 0.5;
+  const int V_STEP = 10;
+
+  if(diff > DIFF_THRESH)
+  {
+    lastCommand.rightV += V_STEP;
+  }
+  else if(diff < -1 * DIFF_THRESH)
+  {
+    lastCommand.leftV += V_STEP;
+  }
+  else
+  {
+    // maybe slowly make rightV == leftV?
+     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
+     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+     
+     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
+     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
+
+  }
+
+  return translateWithinLimits(lastCommand);
+
+}
+
+bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand) 
+{ 
+  //make sure wall is on right at 20 cm away (use second ir)
+  
   bool tos = turnOnSpot(ts, 10, mc);
-  for(int i = 0; i < 4; i++) {
-    MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
+  for(int i = 0; i < 4; i++) 
+  {
+//    MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
   }
   return turnOnSpot(ts, -10, mc);
   

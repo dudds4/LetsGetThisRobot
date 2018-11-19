@@ -1,4 +1,4 @@
-#include "myImu.h"
+
 #include "sensors.h"
 #include "controls.h"
 #include <Adafruit_BNO055.h>
@@ -9,65 +9,76 @@ static TurnState ts;
 //ts.initialized = true;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
-sensors_event_t initial_imu;
 
 void setup() {
   Serial.begin(9600);
   
   initializeIMU(bno);
   initializeIR();
+  initMotors();
   
-  pinMode(IN1,OUTPUT);
-  pinMode(IN2,OUTPUT); 
-  pinMode(IN3,OUTPUT); 
-  pinMode(IN4,OUTPUT); 
-  
-  // change up PWM frequencies for motor PWM pins
-  // Timer 3 for outputs 2/3/5
-  TCCR3B &= ~(0x07);
-  TCCR3B |= 0x02;
-  
-  // Timer 4 for outputs 6,7,8  
-  TCCR4B &= ~(0x07);
-  TCCR4B |= 0x02;
-
-  lastCommand.leftV = 200;
-  lastCommand.rightV = 200;
-   
+  bool changePWMFrequencies = true;
+  if(changePWMFrequencies)
+  {    
+    // change up PWM frequencies for motor PWM pins
+    // Timer 3 for outputs 2/3/5
+    TCCR3B &= ~(0x07);
+    TCCR3B |= 0x02;
+    
+    // Timer 4 for outputs 6,7,8  
+    TCCR4B &= ~(0x07);
+    TCCR4B |= 0x02;
+  }
 }
 
 bool doneTurn = false;
+bool initializedTest = false;
+sensors_event_t initial_imu;
 
-void setMotorVoltage(int EN, int IN1, int IN2, int v)
+enum Test { DriveStraightWIMU, DriveStraightWIR };
+
+void loop() 
 {
-   if(v > 255) v = 255;
-   else if(v < -255) v = -255;
-   
-   digitalWrite(EN, HIGH);// motor speed 
-   if(v > 0)
-   {
-     analogWrite(IN2, v); //right motor
-     digitalWrite(IN1,LOW); 
-   }
-   else
-   {
-     analogWrite(IN1, -1*v); //right motor
-     digitalWrite(IN2,LOW);  
-   }
-}
+  Test currentTest = DriveStraightWIR;
 
-void loop() {
+  
+  
   //ir_data1 = analogRead(ir1);
   //ir_data2 = analogRead(ir2);
   
-  //initMotors();
+  //
   //newCommand = driveStraight(bno, initial_imu, lastCommand);
 
   //if(getIR()); //updates ir values
    //Serial.println("Updated IR");
 
-  newCommand = driveStraight(bno, initial_imu, lastCommand);
+  const int GOAL_AVG = 200;
+  
+  if(currentTest == DriveStraightWIMU)
+  {
+    if(!initializedTest)
+    {
+      Serial.println("initializing drive straight");
+      bno.getEvent(&initial_imu);
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG;
+      initializedTest = true; 
+    }
+    
+    lastCommand = driveStraight(bno, initial_imu, lastCommand, GOAL_AVG);
+  }
+  else if(currentTest == DriveStraightWIR)
+  {
+    if(!initializedTest)
+    {
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG; 
+    }
 
+    // follow at 25 cm
+    lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
+  }
+   
   /*if(ir1Avg > 450) {
     doneTurn = false;
   }
@@ -86,8 +97,9 @@ void loop() {
    while(1){}  
   }*/
   
-  // setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
-  // setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);
+//   printCommand(lastCommand);
+   setMotorVoltage(motorLeft, lastCommand.leftV);
+   setMotorVoltage(motorRight, lastCommand.rightV);
   
   delay(20);
 }
