@@ -24,10 +24,8 @@ void initializeIR()
 
 bool getIR() 
 {
-  ir1Array[0] = analogRead(ir1);
-  ir2Array[0] = analogRead(ir2);
-  
-  int sum = 0, sum2 = 0;
+  int newValue1 = analogRead(ir1), newValue2 = analogRead(ir2);
+  int sum1 = newValue1, sum2 = newValue2;
 
   int N = sizeof(ir1Array) / sizeof(ir1Array[0]);
   
@@ -37,15 +35,12 @@ bool getIR()
     ir1Array[i] = ir1Array[i-1];
     ir2Array[i] = ir2Array[i-1];
         
-    sum = ir1Array[i];
-    sum2 = ir2Array[i];
+    sum += ir1Array[i];
+    sum2 += ir2Array[i];
   }
 
   ir1Array[0] = analogRead(ir1);
   ir2Array[0] = analogRead(ir2);
-  
-  sum = ir1Array[0];
-  sum2 = ir2Array[0];
   
   ir1Avg = sum / N;
   ir2Avg = sum2 / N;
