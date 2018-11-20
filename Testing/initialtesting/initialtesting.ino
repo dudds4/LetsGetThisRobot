@@ -1,7 +1,7 @@
 
 #include "sensors.h"
 #include "controls.h"
-#include <Adafruit_BNO055.h>
+#include "Adafruit_BNO055.h"
 
 static MotorCommand newCommand;
 static MotorCommand lastCommand;
@@ -35,11 +35,11 @@ bool doneTurn = false;
 bool initializedTest = false;
 sensors_event_t initial_imu;
 
-enum Test { DriveStraightWIMU, DriveStraightWIR };
+enum Test { DriveStraightWIMU, DriveStraightWIR, turnAtWallTest };
 
 void loop() 
 {
-  Test currentTest = DriveStraightWIR;
+  Test currentTest = turnAtWallTest;
 
   
   
@@ -78,7 +78,19 @@ void loop()
     // follow at 25 cm
     lastCommand = genWallFollow(260, GOAL_AVG, lastCommand);
   }
-   
+
+   else if(currentTest == turnAtWallTest)
+  {
+    if(!initializedTest)
+    {
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG; 
+    }
+
+    // follow at 25 cm
+    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
+  }
+  
   /*if(ir1Avg > 450) {
     doneTurn = false;
   }

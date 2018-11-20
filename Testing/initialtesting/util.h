@@ -47,7 +47,7 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
 {
   if(!ts.initialized)
   {
-    Serial.println("initializing");
+//    Serial.println("initializing");
     ts.initialYaw = getYaw();
     ts.lastYaw = ts.initialYaw;
     ts.goalYaw = ts.initialYaw + deg;
@@ -71,9 +71,9 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   // compute directions to turn
   int diff =  ts.goalYaw - yaw;
 
-  Serial.print(yaw);
-  Serial.print(" ");
-  Serial.println(ts.goalYaw);
+//  Serial.print(yaw);
+//  Serial.print(" ");
+//  Serial.println(ts.goalYaw);
   
   // case 1: we've finished the turn
   const int DONE_THRESHOLD = 3;
@@ -87,7 +87,7 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   const int MOTOR_V = 200;
   
   // case 2: we need to turn CW
-  if(diff < 0)
+  if(diff > 0)
   {
     mc->leftV = MOTOR_V;
     mc->rightV = -1 * MOTOR_V;
@@ -177,7 +177,7 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
 
 }
 
-MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastCommand)
+MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
 {
   getIR();  //update ir readings
   
@@ -190,7 +190,7 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
     //Serial.print(" ");
     counter=0;
   }
-  double diff = distance - rDist;
+  double diff = dist - rDist;
   Serial.print(rDist);
   Serial.print(" ");
   Serial.println(diff);
@@ -200,15 +200,15 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
 
   if(diff > DIFF_THRESH)
   {
-    lastCommand.rightV += V_STEP + 7;
+    lastCommand.rightV += V_STEP ;
     //lastCommand.leftV -= (V_STEP -10) ;
-    Serial.print("Right motor increase"); Serial.println(lastCommand.rightV);
+//    Serial.print("Right motor increase"); Serial.println(lastCommand.rightV);
   }
   else if(diff < -1 * DIFF_THRESH)
   {
     lastCommand.leftV += V_STEP;
     //lastCommand.rightV += (V_STEP -10);
-    Serial.print("Left motor increase"); Serial.println(lastCommand.leftV);
+//    Serial.print("Left motor increase"); Serial.println(lastCommand.leftV);
   }
   else
   {
@@ -224,6 +224,57 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
   return translateWithinLimits(lastCommand);
 
 }
+
+
+MotorCommand turnAtWall(double dist, int goalAvg, MotorCommand lastCommand)
+{
+  
+  getIR();  //update ir readings
+  static TurnState ts;
+  static int state = 0;
+  //static MotorCommand* mc;
+
+  if(state == 0)
+  {
+        double frontDist = ir1Avg;
+        double sideDist = ir2Avg;
+
+        static int counter = 0;
+        if(++counter > 10)
+        {
+          Serial.println(ir1Avg);
+          counter=0;
+        }
+
+        if (frontDist >= dist)
+        {
+          state = 1;
+          ts = TurnState();
+          Serial.println("Transition to turning state");  
+        } 
+        else
+          return genWallFollow(dist, goalAvg, lastCommand);    
+  }
+  else if(state == 1)
+  {
+     if(turnOnSpot(ts, 90, &lastCommand))
+     {
+        lastCommand.rightV = goalAvg;
+        lastCommand.leftV = goalAvg;
+        
+        Serial.println("Transition to second driving state");
+        state = 2; 
+     }
+
+     return lastCommand;
+  }
+  else if(state == 2)
+  {
+    return genWallFollow(dist, goalAvg, lastCommand);        
+  }  
+  
+}
+
 
 bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand) 
 { 
