@@ -182,14 +182,17 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
   getIR();  //update ir readings
 
   double irAvg = rightIr.getAvg();
-  double rDist = irAnalogToCm(irAvg);
+  double irMedian = rightIr.getMedian();
+  double rDist = irAnalogToCm(irMedian);
   static int counter = 0;
   if(++counter > 10)
   {
     Serial.print(irAvg);
     Serial.print(" ");
+    Serial.print(irMedian);
+    Serial.print(" ");
     Serial.println(rDist);
-    counter=0;
+    counter = 0;
   }
   double diff = distance - rDist;
 

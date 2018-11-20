@@ -33,6 +33,36 @@ struct IrSensor
   }
   
   double getAvg() { return avg; }
+  unsigned getMedian() 
+  {
+    unsigned sorted[IR_SENSOR_FILTER_N];
+    memcpy(sorted, filterArray, sizeof(unsigned)*IR_SENSOR_FILTER_N);
+
+    unsigned minIdx, tmp;
+    
+    // sort sorted, selection sort
+    for(int i = 0; i < IR_SENSOR_FILTER_N-1; ++i)
+    {
+      minIdx = i;
+
+      // find min value
+      for(int j = i+1; j < IR_SENSOR_FILTER_N; ++j)
+      {
+        if(sorted[j] < sorted[minIdx]) 
+          minIdx = j;
+      }
+
+      // swap
+      if(minIdx != i)
+      {
+        tmp = sorted[i];
+        sorted[i] = sorted[minIdx];
+        sorted[minIdx] = tmp;  
+      }
+    }
+
+    return sorted[IR_SENSOR_FILTER_N/2];
+  }
   
 private:  
   int pin;

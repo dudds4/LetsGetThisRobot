@@ -9,41 +9,18 @@ int facingWall = 0;
 
 MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand) 
 {
-
-
-unsigned int ir1Array[] = {0,0,0,0,0};
-unsigned int ir2Array[] = {0,0,0,0,0};
-
-
   const unsigned PERIOD = 10; 
   static unsigned counter = PERIOD;
-  
-  if(++counter < PERIOD) 
-  {
-    for(int i = sizeof(ir1Array); i>0; i--) 
-    { //shift values
-      ir1Array[i] = ir1Array[i-1];
-      ir2Array[i] = ir2Array[i-1];
-    }
-    
-    ir1Array[0] = analogRead(ir1);
-    ir2Array[0] = analogRead(ir2);
-    
-    return lastCommand;
-  }
-  
+
+  // if you want to run this control at a lower frequency, you can
+  // skip logic and just continue with previous command
+  // this is example code though, you can choose not to do this..
+  if(++counter < PERIOD) { return lastCommand; }
   counter = 0;
 
-  int sum = 0; 
-  int sum2 = 0;
-  for(int i = sizeof(ir1Array); i>0; i--) 
-  { 
-      //take avg and discard rly out-of-range values
-      sum = sum + ir1Array[i];
-      sum2 = sum2 + ir2Array[i];
-  }
-  double ir1Avg = sum / 5;
-  double ir2Avg = sum2 / 5;
+  getIR();
+  double ir1Avg = frontIr.getAvg();
+  double ir2Avg = rightIr.getAvg();
 
   /****** IMU stuff ******/
   static bool initialized = false;                   
