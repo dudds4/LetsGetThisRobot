@@ -35,11 +35,11 @@ bool doneTurn = false;
 bool initializedTest = false;
 sensors_event_t initial_imu;
 
-enum Test { DriveStraightWIMU, DriveStraightWIR };
+enum Test { DriveStraightWIMU, DriveStraightWIR, driveAndTurn };
 
 void loop() 
 {
-  Test currentTest = DriveStraightWIR;
+  Test currentTest = driveAndTurn;
 
   
   
@@ -77,6 +77,17 @@ void loop()
 
     // follow at 25 cm
     lastCommand = genWallFollow(260, GOAL_AVG, lastCommand);
+  }
+  else if (currentTest == driveAndTurn)
+  {
+      
+    if(!initializedTest)
+    {
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG; 
+    }
+    
+      lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
   }
    
   /*if(ir1Avg > 450) {

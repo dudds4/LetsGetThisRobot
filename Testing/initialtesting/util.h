@@ -177,6 +177,47 @@ MotorCommand driveStraight(Adafruit_BNO055& bno, sensors_event_t initial, MotorC
 
 }
 
+//MotorCommand detFrontWall(double distance, int goalAvg, MotorCommand lastCommand)
+//{
+//  getIR();  //update ir readings
+//  
+//  double frontDist = ir1Avg;
+//  double sideDist = ir2Avg;
+//  static int counter = 0;
+//  if(++counter > 10)
+//  {
+//    //Serial.print(ir2Avg);
+//    //Serial.print(rDist);
+//    //Serial.print(" ");
+//    counter=0;
+//  }
+//
+//  double diff = distance - frontDist;
+//  Serial.print(frontDist);
+//  Serial.print(" ");
+//  Serial.println(diff);
+//
+//  const double DIFF_THRESH = 50;
+//  const int V_STEP = 30;
+//
+//   if(diff > DIFF_THRESH)
+//  {
+//    //do nothing 
+//  }
+//  else if(diff < DIFF_THRESH)
+//  {
+//   while(sideDist != frontDist)
+//   {
+//      lastCommand.rightV = 0;
+//      lastCommand.leftV = V_STEP;
+//   }
+//  }
+//}
+
+
+
+
+
 MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastCommand)
 {
   getIR();  //update ir readings
@@ -196,12 +237,13 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
   Serial.println(diff);
 
   const double DIFF_THRESH = 5;
-  const int V_STEP = 30;
+  const int V_STEP = 40;
 
   if(diff > DIFF_THRESH)
   {
-    lastCommand.rightV += V_STEP + 7;
-    //lastCommand.leftV -= (V_STEP -10) ;
+    lastCommand.rightV += V_STEP + 5;
+    //lastCommand.leftV -= (V_STEP -10) ;..;l
+
     Serial.print("Right motor increase"); Serial.println(lastCommand.rightV);
   }
   else if(diff < -1 * DIFF_THRESH)
@@ -224,6 +266,46 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
   return translateWithinLimits(lastCommand);
 
 }
+
+
+
+MotorCommand turnAtWall(double distance, int goalAvg, MotorCommand lastCommand)
+{
+  
+  getIR();  //update ir readings
+  static TurnState ts;
+  static MotorCommand* mc;
+        
+        double frontDist = ir1Avg;
+        double sideDist = ir2Avg;
+        static int counter = 0;
+        if(++counter > 10)
+        {
+          Serial.print(ir1Avg);
+          //Serial.print(rDist);
+          //Serial.print(" ");
+          counter=0;
+        }
+      
+        double diffFront = distance - frontDist;
+        double diffSide = distance - sideDist;
+        Serial.print(frontDist);
+        Serial.print(sideDist);
+        Serial.print(" ");
+        Serial.println(diffFront);
+        Serial.println(diffSide);
+  
+        const double DIFF_THRESH_F = 50;
+        const int V_STEP_F = 30;
+
+        if (diffFront < DIFF_THRESH_F)
+          bool turn = turnOnSpot(ts, 90, mc);
+        else
+          lastCommand = genWallFollow(260, goalAvg, lastCommand);
+  
+}
+
+
 
 bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand) 
 { 
