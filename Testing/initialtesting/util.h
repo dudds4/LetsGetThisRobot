@@ -196,11 +196,11 @@ MotorCommand genWallFollow(double distance, int goalAvg, MotorCommand lastComman
   Serial.println(diff);
 
   const double DIFF_THRESH = 5;
-  const int V_STEP = 40;
+  const int V_STEP = 30;
 
   if(diff > DIFF_THRESH)
   {
-    lastCommand.rightV += V_STEP + 10;
+    lastCommand.rightV += V_STEP + 7;
     //lastCommand.leftV -= (V_STEP -10) ;
     Serial.print("Right motor increase"); Serial.println(lastCommand.rightV);
   }
