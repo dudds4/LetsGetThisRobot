@@ -35,7 +35,7 @@ bool doneTurn = false;
 bool initializedTest = false;
 sensors_event_t initial_imu;
 
-enum Test { DriveStraightWIMU, DriveStraightWIR };
+enum Test { DriveStraightWIMU, DriveStraightWIR, driveAndTurn };
 
 void loop() 
 {
@@ -65,6 +65,17 @@ void loop()
   
     // follow at 25 cm
     lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
+  }
+  else if (currentTest == driveAndTurn)
+  {
+      
+    if(!initializedTest)
+    {
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG; 
+    }
+    
+      lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
   }
    
    setMotorVoltage(motorLeft, lastCommand.leftV);
