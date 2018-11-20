@@ -2,8 +2,6 @@
 #define CONTROLS_H
 
 #include "nav.h"
-#include "myImu.h"
-#include "ir.h"
 #include "sensors.h"
 #include "util.h"
 
@@ -11,24 +9,36 @@ int facingWall = 0;
 
 MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand) 
 {
+
+
+unsigned int ir1Array[] = {0,0,0,0,0};
+unsigned int ir2Array[] = {0,0,0,0,0};
+
+
   const unsigned PERIOD = 10; 
   static unsigned counter = PERIOD;
-  unsigned int ir1Array[] = {0,0,0,0,0};
-  unsigned int ir2Array[] = {0,0,0,0,0};
-  if(++counter < PERIOD) {
-    for(int i = sizeof(ir1Array); i>0; i--) { //shift values
+  
+  if(++counter < PERIOD) 
+  {
+    for(int i = sizeof(ir1Array); i>0; i--) 
+    { //shift values
       ir1Array[i] = ir1Array[i-1];
       ir2Array[i] = ir2Array[i-1];
     }
+    
     ir1Array[0] = analogRead(ir1);
     ir2Array[0] = analogRead(ir2);
+    
     return lastCommand;
   }
+  
   counter = 0;
 
   int sum = 0; 
   int sum2 = 0;
-  for(int i = sizeof(ir1Array); i>0; i--) { //take avg and discard rly out-of-range values
+  for(int i = sizeof(ir1Array); i>0; i--) 
+  { 
+      //take avg and discard rly out-of-range values
       sum = sum + ir1Array[i];
       sum2 = sum2 + ir2Array[i];
   }
@@ -45,6 +55,7 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
   initialized = 1; 
 	
   /*********************************** METAL WALL ***********************************/  
+  
  /* static TurnState ts;
   static MotorCommand* mc;
   ts.initialized = false;
@@ -74,20 +85,20 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
     if(irAnalogToCm(ir2Avg) > 33) { //ir sensor on left
       bool tos = turnOnSpot(ts, -10, mc);
       for(int i = 0; i < 4; i++) {
-        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
+//        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
       }
     }
   }
 
   facingWall = initial_imu.orientation.x;
   
-  return driveStraight(bno, initial_imu, lastCommand);
+//  return driveStraight(bno, initial_imu, lastCommand);
 }
 
 MotorCommand climbRamp1(/* add params */) 
 {}
 
-MotorCommand findRamp2(TurnState ts, MotorCommand mc*, bno, initial_imu, lastCommand, ir1Avg, ir2Avg) 
+/*MotorCommand findRamp2(TurnState ts, MotorCommand mc*,  bno, initial_imu, lastCommand, ir1Avg, ir2Avg) 
 {
     int face = 0;
     
@@ -102,74 +113,13 @@ MotorCommand findRamp2(TurnState ts, MotorCommand mc*, bno, initial_imu, lastCom
           face++;
       MotorCommand drvstr = driveStraight(bno, initial_imu, lastCommand);
     }  
-}
+}*/
 
-<<<<<<< HEAD
-MotorCommand wallZigzag(Adafruit_BNO055& bno, sensors_event_t initial, MotorCommand lastCommand) 
-{
-  //set left motor speed 
-  //set right motor speed
-  //need to take in imu status 
-  //this function is called based on if y = 90 or - 90 
-  
-   /* Get a new sensor event */ 
-  sensors_event_t imu_event; 
-  bno.getEvent(&imu_event);
-
-  int origin = imu_event.orientation.x;
-  
-  bool clockwise = 1;
-  
-  int differenceY = initial.orientation.y - imu_event.orientation.y;
-  int differenceX = initial.orientation.x - imu_event.orientation.x;
-  
-  if(abs(differenceY) > 5) 
-  { // Robot has just got on the wall
-
-      //begin controlling the motors
-      //speed up the left motor first causing a right
-
-      //robot is now "steady" on the wall
-      if(abs(differenceY) < 1 )
-      {
-          if( abs(differenceX) < 45 && (clockwise) )
-          {
-            lastCommand.leftV += 30;
-            lastCommand.rightV -= 30;
-          }
-    
-          clockwise = 0;
-          //origin = imu_event.orientation.x;
-    
-          //
-          else( (abs(differenceX) < 45  || abs(differenceX) > 315 ) && (!clockwise) )
-          {
-           
-            //set init to curr here 
-            lastCommand.leftV -= 30;
-            lastCommand.rightV += 30;
-          }
-    
-          clockwise = 1;
-
-      }
-      
-  }
-  else{
-   //perform turning function to turn around 
-   }
-  
-  
-}
-
-MotorCommand search(/* add params */) {}
-=======
 MotorCommand search(/* add params */) 
 {
   
   
 }
->>>>>>> 4988f343a131038eb22ed205bf14a63768f5de58
 
 MotorCommand return1(/* add params */) 
 {}
@@ -180,8 +130,4 @@ MotorCommand ramp2(/* add params */)
 MotorCommand return2(/* add params */) 
 {}
 
-<<<<<<< HEAD
 #endif // CONTROLS_H
-=======
-#endif // CONTROLS_H
->>>>>>> 4988f343a131038eb22ed205bf14a63768f5de58
