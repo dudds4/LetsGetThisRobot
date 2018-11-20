@@ -39,7 +39,7 @@ enum Test { DriveStraightWIMU, DriveStraightWIR, driveAndTurn };
 
 void loop() 
 {
-  Test currentTest = driveAndTurn;
+  Test currentTest = DriveStraightWIR;
 
   
   

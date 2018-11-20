@@ -298,8 +298,19 @@ MotorCommand turnAtWall(double distance, int goalAvg, MotorCommand lastCommand)
         const double DIFF_THRESH_F = 50;
         const int V_STEP_F = 30;
 
-        if (diffFront < DIFF_THRESH_F)
-          bool turn = turnOnSpot(ts, 90, mc);
+        if (diffFront < DIFF_THRESH_F) {
+          while(sideDist != frontDist)
+             {
+                lastCommand.rightV = 0;
+                lastCommand.leftV = V_STEP_F;
+             }
+
+          lastCommand.rightV = goalAvg;
+          lastCommand.leftV = goalAvg;
+          lastCommand = genWallFollow(260, goalAvg, lastCommand);
+        
+ //         bool turn = turnOnSpot(ts, 90, mc);
+        }
         else
           lastCommand = genWallFollow(260, goalAvg, lastCommand);
   
