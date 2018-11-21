@@ -9,8 +9,11 @@ void printCommand(MotorCommand mc)
 
 void setMotorVoltage(Motor m, int v)
 {
-   if(v > 255) v = 255;
-   else if(v < -255) v = -255;
+  // this is because our motors are rated for 6V, and we have a 9V supply
+  #define MAX_APPLIED 170
+  
+   if(v > MAX_APPLIED) v = MAX_APPLIED;
+   else if(v < -1*MAX_APPLIED) v = -1*MAX_APPLIED;
    
    digitalWrite(m.en, HIGH);// motor speed 
    if(v > 0)

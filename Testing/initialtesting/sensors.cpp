@@ -1,7 +1,11 @@
 #include "sensors.h"
 
-#define ir1    0 // Front
-#define ir2    1 // Right side
+#define ir1    A0 // Front
+#define ir2    A1 // Right side
+
+// ramp irs
+#define IR_L 46
+#define IR_R 48
 
 IrSensor frontIr(ir1);
 IrSensor rightIr(ir2);
