@@ -1,14 +1,11 @@
 
 #include "sensors.h"
 #include "controls.h"
-#include <Adafruit_BNO055.h>
+#include "Adafruit_BNO055.h"
 
 static MotorCommand newCommand;
 static MotorCommand lastCommand;
 static TurnState ts;
-//ts.initialized = true;
-
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 void setup() {
   Serial.begin(9600);
@@ -33,13 +30,12 @@ void setup() {
 
 bool doneTurn = false;
 bool initializedTest = false;
-sensors_event_t initial_imu;
 
-enum Test { DriveStraightWIMU, DriveStraightWIR, driveAndTurn };
+enum Test { DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall };
+Test currentTest = TurnAtWall;
 
 void loop() 
 {
-  Test currentTest = DriveStraightWIR;
   const int GOAL_AVG = 200;
   
   if(currentTest == DriveStraightWIMU)
@@ -52,8 +48,8 @@ void loop()
       lastCommand.rightV = GOAL_AVG;
       initializedTest = true; 
     }
-    
-    lastCommand = driveStraight(bno, initial_imu, lastCommand, GOAL_AVG);
+  
+    lastCommand = driveStraight(g_bno, initial_imu, lastCommand, GOAL_AVG);
   }
   else if(currentTest == DriveStraightWIR)
   {
@@ -66,20 +62,30 @@ void loop()
     // follow at 25 cm
     lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
   }
-  else if (currentTest == driveAndTurn)
+  else if(currentTest == TurnAtWall)
   {
-      
     if(!initializedTest)
     {
       lastCommand.leftV = GOAL_AVG;
       lastCommand.rightV = GOAL_AVG; 
     }
     
-      lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
+    // follow at 25 cm
+    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
+  }
+  else if (currentTest == DriveAndTurn)
+  {
+    if(!initializedTest)
+    {
+      lastCommand.leftV = GOAL_AVG;
+      lastCommand.rightV = GOAL_AVG; 
+    }
+  
+    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
   }
    
-   setMotorVoltage(motorLeft, lastCommand.leftV);
-   setMotorVoltage(motorRight, lastCommand.rightV);
+  setMotorVoltage(motorLeft, lastCommand.leftV);
+  setMotorVoltage(motorRight, lastCommand.rightV);
   
   delay(20);
 }
