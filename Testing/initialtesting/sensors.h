@@ -4,9 +4,6 @@
 #include <Adafruit_BNO055.h>
 #include <math.h>
 
-#define ir1    0 // Front
-#define ir2    1 // Right side
-
 struct IrSensor 
 {
   
@@ -25,16 +22,21 @@ private:
   double avg = 0;
 };
 
-/*Global Sensors Variables*/
-
+/* Global Sensors Variables */
 extern Adafruit_BNO055 bno;
 extern IrSensor frontIr;
 extern IrSensor rightIr;
 
+// convenience function, initializes both ir sensor analog pins
 void initializeIR();
+
+// convenience function, calls IrSensor::refresh on both ir sensors
 bool getIR();
 
+// convert the analog value read from the arduino to cm
 inline double irAnalogToCm(int analogValue) { return 1619.1 * pow(analogValue, -0.591); }
+
+// initialize an IMU sensor
 void initializeIMU(Adafruit_BNO055& bno);
 
 #endif // SENSORS_H

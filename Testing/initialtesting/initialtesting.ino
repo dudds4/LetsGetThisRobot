@@ -1,5 +1,6 @@
 #include "sensors.h"
 #include "controls.h"
+#include "rampfinding.h"
 #include "Adafruit_BNO055.h"
 
 static MotorCommand newCommand;

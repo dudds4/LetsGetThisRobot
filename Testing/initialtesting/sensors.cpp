@@ -1,5 +1,8 @@
 #include "sensors.h"
 
+#define ir1    0 // Front
+#define ir2    1 // Right side
+
 IrSensor frontIr(ir1);
 IrSensor rightIr(ir2);
 Adafruit_BNO055 bno(55);

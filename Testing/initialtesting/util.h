@@ -42,11 +42,4 @@ MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, in
 // drives straight using the mounted IR to travel a straight line
 MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
 
-// drives straight until it sees a wall, then turns, and starts wall following..
-// not really a utility function, this needs to move
-MotorCommand turnAtWall(double dist, int goalAvg, MotorCommand lastCommand);
-
-// not sure what this does
-bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand);
-
 #endif
