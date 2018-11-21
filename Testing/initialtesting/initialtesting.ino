@@ -1,4 +1,3 @@
-
 #include "sensors.h"
 #include "controls.h"
 #include "Adafruit_BNO055.h"
@@ -7,7 +6,8 @@ static MotorCommand newCommand;
 static MotorCommand lastCommand;
 static TurnState ts;
 
-void setup() {
+void setup() 
+{
   Serial.begin(9600);
   
   initializeIMU(bno);
@@ -30,6 +30,7 @@ void setup() {
 
 bool doneTurn = false;
 bool initializedTest = false;
+sensors_event_t initial_imu;
 
 enum Test { DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall };
 Test currentTest = TurnAtWall;
@@ -49,7 +50,7 @@ void loop()
       initializedTest = true; 
     }
   
-    lastCommand = driveStraight(g_bno, initial_imu, lastCommand, GOAL_AVG);
+    lastCommand = driveStraight(initial_imu, lastCommand, GOAL_AVG);
   }
   else if(currentTest == DriveStraightWIR)
   {
