@@ -4,6 +4,8 @@
 #include "nav.h"
 #include "sensors.h"
 
+//sensors_event_t imuWF; //wall follow
+
 // utility for printing a motor command to serial
 void printCommand(MotorCommand mc);
 
@@ -41,5 +43,7 @@ MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, in
 
 // drives straight using the mounted IR to travel a straight line
 MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
+
+MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorCommand lastCommand);
 
 #endif

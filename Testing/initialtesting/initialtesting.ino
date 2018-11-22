@@ -34,7 +34,7 @@ bool doneTurn = false;
 bool initializedTest = false;
 sensors_event_t initial_imu;
 
-enum Test { RunMotors, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall };
+enum Test { RunMotors, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
 Test currentTest = DriveStraightWIR;
 
 unsigned loopCounter = 0;
@@ -70,7 +70,7 @@ void loop()
       Serial.print(ravg);
       counter = 0;
       Serial.print(", f: ");
-      Serial.println(irAnalogToCm(favg));  
+      Serial.println(irAnalogToCm(favg));
     }
     
 //    setMotorVoltage(motorLeft, 200);
@@ -99,8 +99,8 @@ void loop()
       initializedTest = true;
     }
   
-    // follow at 25 cm
-    lastCommand = genWallFollow(25, GOAL_AVG, lastCommand);
+    // follow at 10 cm
+    lastCommand = wfIMU(initial_imu, 20, GOAL_AVG, lastCommand); //test
   }
   else if(currentTest == TurnAtWall)
   {
