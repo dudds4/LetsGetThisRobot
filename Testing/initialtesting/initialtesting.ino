@@ -23,10 +23,10 @@ void setup()
   if(changePWMFrequencies)
   {    
     // change up PWM frequencies for motor PWM pins
-    TCCR3B &= ~(0x07);
-    TCCR3B |= 0x02;
-    TCCR4B &= ~(0x07);
-    TCCR4B |= 0x02;
+    TCCR1B &= ~(0x07);
+    TCCR1B |= 0x02;
+    TCCR2B &= ~(0x07);
+    TCCR2B |= 0x02;
   }
 
   initialYaw = getYaw();
@@ -39,7 +39,7 @@ sensors_event_t initial_imu;
 double turnAngle = 0;
 
 enum Section { FindRamp, ClimbRamp, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
-Section currentSection = FindRamp;
+Section currentSection = ClimbRamp;
 int state = 0;
 
 unsigned loopCounter = 0;
@@ -58,18 +58,26 @@ void loop()
   
   bool shouldPrint = false;
   static unsigned counter = 0;
-  if(++counter > 18) { shouldPrint = true; counter = 0; }
-  
+  //if(++counter > 18) { shouldPrint = true; counter = 0; }
+
+  if(shouldPrint)
+  {
+    double aa = rampIR_L.getRaw();
+    Serial.print(aa);
+    Serial.print(" ");
+    aa = rampIR_R.getRaw();
+    Serial.println(aa);
+//    Serial.println(rampIR_L.getMedian());
+//    Serial.println(rampIR_R.getMedian());
+  }
+
   switch(currentSection)
   {
     case FindRamp:
       lastCommand = rampFinder.run(lastCommand);
-      Serial.print(frontIr.getDist());
-      Serial.print(" ");
-      Serial.println(rightIr.getDist());
-      
-//      if(rampFinder.isDone())
-//        currentSection = ClimbRamp;
+
+      if(rampFinder.isDone())
+        currentSection = ClimbRamp;
       break;
 
     case ClimbRamp:

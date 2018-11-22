@@ -49,4 +49,6 @@ MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int go
 
 MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand);
 
+bool reverse(MotorCommand lastCommand);
+
 #endif

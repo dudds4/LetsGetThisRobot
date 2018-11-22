@@ -296,3 +296,13 @@ MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorComm
 
   return lastCommand;
 }
+
+bool reverse(MotorCommand lastCommand)
+{
+  lastCommand.leftV = -1 *50;
+  lastCommand.rightV = -1 *50;
+  
+  //delay(1000);
+  return true;
+}
+
