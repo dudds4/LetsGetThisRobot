@@ -1,11 +1,12 @@
 #include "sensors.h"
 
+// ir range sensors
 #define ir1    A0 // Front
 #define ir2    A1 // Right side
 
-// ramp irs
-#define ir_L_ctrl 4
-#define ir_R_ctrl 2
+// ir ramp sensors
+#define ir_L_ctrl 30
+#define ir_R_ctrl 46
 
 #define ir_L A2
 #define ir_R A3

@@ -19,17 +19,14 @@ void setup()
   initializeIR();
   initMotors();
   
-  bool changePWMFrequencies = false;
+  bool changePWMFrequencies = true;
   if(changePWMFrequencies)
   {    
     // change up PWM frequencies for motor PWM pins
-    // Timer 3 for outputs 2/3/5
-    TCCR1B &= ~(0x07);
-    TCCR1B |= 0x02;
-    
-    // Timer 4 for outputs 9,10  
-    TCCR2B &= ~(0x07);
-    TCCR2B |= 0x02;
+    TCCR3B &= ~(0x07);
+    TCCR3B |= 0x02;
+    TCCR4B &= ~(0x07);
+    TCCR4B |= 0x02;
   }
 
   initialYaw = getYaw();
@@ -62,35 +59,28 @@ void loop()
   bool shouldPrint = false;
   static unsigned counter = 0;
   if(++counter > 18) { shouldPrint = true; counter = 0; }
-
-  if(shouldPrint)
-  {
-    double aa = rampIR_L.getRaw();
-    Serial.print(aa);
-    Serial.print(" ");
-    aa = rampIR_R.getRaw();
-    Serial.println(aa);
-//    Serial.println(rampIR_L.getMedian());
-//    Serial.println(rampIR_R.getMedian());
-  }
   
-//  switch(currentSection)
-//  {
-//    case FindRamp:
-//      lastCommand = rampFinder.run(lastCommand);
+  switch(currentSection)
+  {
+    case FindRamp:
+      lastCommand = rampFinder.run(lastCommand);
+      Serial.print(frontIr.getDist());
+      Serial.print(" ");
+      Serial.println(rightIr.getDist());
+      
 //      if(rampFinder.isDone())
 //        currentSection = ClimbRamp;
-//      break;
-//
-//    case ClimbRamp:
-//      lastCommand = rampClimber.run(lastCommand);
-//      
-//      break;
-//
-//    default: 
-//      lastCommand.reset();
-//      break;
-//  }
+      break;
+
+    case ClimbRamp:
+      lastCommand = rampClimber.run(lastCommand);
+      
+      break;
+
+    default: 
+      lastCommand.reset();
+      break;
+  }
   
 //  if(currentSection == RunMotors)
 //  {
@@ -149,7 +139,7 @@ void loop()
   setMotorVoltage(motorLeft, lastCommand.leftV);
   setMotorVoltage(motorRight, lastCommand.rightV);
 
-//  setMotorVoltage(motorLeft, 0);
-//  setMotorVoltage(motorRight, 0);
+//  setMotorVoltage(motorLeft, -200);
+//  setMotorVoltage(motorRight, 200);
 
 }
