@@ -10,6 +10,11 @@ static TurnState ts;
 void setup() 
 {
   Serial.begin(9600);
+//  Serial.println("before initialization");
+  initializeIMU();
+  initializeIR();
+  initMotors();
+//  Serial.println("after initialization");
   
   bool changePWMFrequencies = false;
   if(changePWMFrequencies)
@@ -23,7 +28,6 @@ void setup()
     TCCR2B &= ~(0x07);
     TCCR2B |= 0x02;
   }
-
 }
 
 bool doneTurn = false;
@@ -31,21 +35,53 @@ bool initializedTest = false;
 sensors_event_t initial_imu;
 
 enum Test { RunMotors, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall };
-Test currentTest = RunMotors;
+Test currentTest = DriveStraightWIR;
+
+unsigned loopCounter = 0;
 
 void loop() 
 {
-  const int GOAL_AVG = 170;
+  if(loopCounter++ < 20) 
+  {
+    getIR();
+    delay(1);
+    return;
+  }
+  
+  loopCounter = 0;
+  
+  const int GOAL_AVG = 250;
 
   if(currentTest == RunMotors)
   {
-    Serial.println("run motors");
+    
+    sensors_event_t event; 
+    bno.getEvent(&event);
+
+    static unsigned counter = 0;
+    if(++counter > 25)
+    {
+//      double yaw = event.orientation.x;
+//      Serial.println(yaw);
+      
+      double ravg = rightIr.getMedian();
+      double favg = frontIr.getMedian();
+      Serial.print("r: ");
+      Serial.print(ravg);
+      counter = 0;
+      Serial.print(", f: ");
+      Serial.println(irAnalogToCm(favg));  
+    }
+    
+//    setMotorVoltage(motorLeft, 200);
+//    setMotorVoltage(motorRight, 200);
+
   }
   else if(currentTest == DriveStraightWIMU)
   {
     if(!initializedTest)
     {
-      Serial.println("initializing drive straight");
+      Serial.println("initializing drive straight /imu");
       bno.getEvent(&initial_imu);
       lastCommand.leftV = GOAL_AVG;
       lastCommand.rightV = GOAL_AVG;
@@ -60,6 +96,7 @@ void loop()
     {
       lastCommand.leftV = GOAL_AVG;
       lastCommand.rightV = GOAL_AVG; 
+      initializedTest = true;
     }
   
     // follow at 25 cm
@@ -87,8 +124,10 @@ void loop()
     lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
   }
 
-//  setMotorVoltage(motorLeft, lastCommand.leftV);
-//  setMotorVoltage(motorRight, lastCommand.rightV);
-  
-  delay(600);
+  setMotorVoltage(motorLeft, lastCommand.leftV);
+  setMotorVoltage(motorRight, lastCommand.rightV);
+
+//  setMotorVoltage(motorLeft, 200);
+//  setMotorVoltage(motorRight, 200);
+
 }

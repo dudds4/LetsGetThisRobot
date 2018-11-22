@@ -162,22 +162,34 @@ MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, in
 
 MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
 {
-  getIR();  //update ir readings
+    
+  bool shouldPrint = false;
+  static unsigned counter = 0;
+  if(counter++ > 20)
+  {
+    shouldPrint = true;
+    counter = 0;  
+  }
   
-  double irAvg = rightIr.getAvg();
-  double diff = irAnalogToCm(irAvg) - goalAvg;
+  double irAvg = rightIr.getMedian();
+  double diff = irAnalogToCm(irAvg) - dist;
 
   const double DIFF_THRESH = 5;
-  const int V_STEPR = 45;
-  const int V_STEPL = 40;
+  const int V_STEPR = 2;
+  const int V_STEPL = 2;
 
   if(diff > DIFF_THRESH)
   {
-    lastCommand.rightV += V_STEPR;
+    lastCommand.rightV += V_STEPR/2;
+    lastCommand.leftV -= V_STEPR/2;
   }
   else if(diff < -1 * DIFF_THRESH)
   {
-    lastCommand.leftV += V_STEPL;
+    
+//    if(shouldPrint) printCommand(lastCommand);
+    lastCommand.leftV += V_STEPL / 2;
+    lastCommand.rightV -= V_STEPL / 2;
+//    if(shouldPrint) printCommand(lastCommand);
   }
   else
   {
@@ -190,6 +202,10 @@ MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
 
   }
 
-  return translateWithinLimits(lastCommand);
+  if(shouldPrint) Serial.println(irAnalogToCm(irAvg));
+//  if(shouldPrint) printCommand(lastCommand);
+  lastCommand = translateWithinLimits(lastCommand);
+//  if(shouldPrint) printCommand(lastCommand);
 
+  return lastCommand;
 }

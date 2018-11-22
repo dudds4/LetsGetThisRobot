@@ -7,7 +7,7 @@
 struct IrSensor 
 {
   
-  #define IR_SENSOR_FILTER_N 5
+  #define IR_SENSOR_FILTER_N 20
   
   IrSensor() = delete;
   IrSensor(int p) : pin(p) {}
@@ -34,9 +34,13 @@ void initializeIR();
 bool getIR();
 
 // convert the analog value read from the arduino to cm
-inline double irAnalogToCm(int analogValue) { return 1619.1 * pow(analogValue, -0.591); }
+inline double irAnalogToCm(int analogValue) 
+{ 
+//  return 1619.1 * pow(analogValue, -0.591);
+  return 3986.7 * pow(analogValue, -0.919) - 4.5;
+}
 
 // initialize an IMU sensor
-void initializeIMU(Adafruit_BNO055& bno);
+void initializeIMU();
 
 #endif // SENSORS_H
