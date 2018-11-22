@@ -7,14 +7,17 @@ static MotorCommand newCommand;
 static MotorCommand lastCommand;
 static TurnState ts;
 
+double initialYaw;
+double initialPitch;
+double initialRoll;
+
 void setup() 
 {
   Serial.begin(9600);
-//  Serial.println("before initialization");
+  
   initializeIMU();
   initializeIR();
   initMotors();
-//  Serial.println("after initialization");
   
   bool changePWMFrequencies = false;
   if(changePWMFrequencies)
@@ -28,14 +31,19 @@ void setup()
     TCCR2B &= ~(0x07);
     TCCR2B |= 0x02;
   }
+
+  initialYaw = getYaw();
+  Serial.println("Finished setup");
 }
 
 bool doneTurn = false;
 bool initializedTest = false;
 sensors_event_t initial_imu;
+double turnAngle = 0;
 
-enum Test { RunMotors, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
-Test currentTest = DriveStraightWIR;
+enum Section { FindRamp, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
+Section currentSection = FindRamp;
+int state = 0;
 
 unsigned loopCounter = 0;
 
@@ -47,87 +55,155 @@ void loop()
     delay(1);
     return;
   }
-  
   loopCounter = 0;
+  
+  bool shouldPrint = false;
+  static unsigned counter = 0;
+  if(++counter > 25) { shouldPrint = true; counter = 0; }
   
   const int GOAL_AVG = 250;
 
-  if(currentTest == RunMotors)
-  {
-    
-    sensors_event_t event; 
-    bno.getEvent(&event);
+  const double FWDIST = 27;
+  const double ROB_OFFSET = 8;
+  const double SWDIST = 30;
 
-    static unsigned counter = 0;
-    if(++counter > 25)
-    {
-//      double yaw = event.orientation.x;
-//      Serial.println(yaw);
+  switch(currentSection)
+  {
+    case FindRamp:
       
-      double ravg = rightIr.getMedian();
-      double favg = frontIr.getMedian();
-      Serial.print("r: ");
-      Serial.print(ravg);
-      counter = 0;
-      Serial.print(", f: ");
-      Serial.println(irAnalogToCm(favg));
-    }
+      if(state == 0)
+      { // drive straight until front ir below threshold
+        
+        if(frontIr.getDist() < FWDIST)
+        {
+          Serial.println("Entering state 1");
+          state = 1;
+          ts.reset();
+          lastCommand = MotorCommand();
+        }
+        else
+        {
+          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
+        }
+      }
+      else if(state == 1)
+      { // 90 deg turn left
+        if(turnOnSpot(ts, -90, &lastCommand)) 
+        { 
+          Serial.println("Entering state 2");
+          state = 2;
+          initialYaw = getYaw();
+          lastCommand.reset();
+        }
+      }
+      else if(state == 2)
+      { // Follow the wall!
+        if(frontIr.getDist() < SWDIST)
+        {
+          Serial.println("Entering state 3");
+          state = 3;
+          lastCommand.reset();
+          ts.reset();
+        }
+        else
+        {
+          lastCommand = wallFollow(initialYaw, FWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
+        }
+      }
+      else if(state == 3)
+      {
+        if(turnOnSpot(ts, -90, &lastCommand)) 
+        {
+          Serial.println("Entering state 4");
+          state = 4;
+          initialYaw = getYaw();
+          initialPitch = getPitch();
+          initialRoll = getRoll();
+          lastCommand.reset();
+        } 
+      }
+      else if(state == 4)
+      {
+        const double PITCH_THRESHOLD = 10;
+        // drive along the wall until we get that ramp booiiis
+        if(abs(getPitch() - initialPitch) > PITCH_THRESHOLD)
+        {
+          Serial.print(getPitch());
+          Serial.print(" ");
+          Serial.print(getRoll());
+          lastCommand.reset();
+        }
+        else
+        {
+          lastCommand = wallFollow(initialYaw, SWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
+        }
+      }
     
-//    setMotorVoltage(motorLeft, 200);
-//    setMotorVoltage(motorRight, 200);
+      break;
 
+    default: 
+      lastCommand = MotorCommand();
+      break;
   }
-  else if(currentTest == DriveStraightWIMU)
-  {
-    if(!initializedTest)
-    {
-      Serial.println("initializing drive straight /imu");
-      bno.getEvent(&initial_imu);
-      lastCommand.leftV = GOAL_AVG;
-      lastCommand.rightV = GOAL_AVG;
-      initializedTest = true; 
-    }
   
-    lastCommand = driveStraight(initial_imu, lastCommand, GOAL_AVG);
-  }
-  else if(currentTest == DriveStraightWIR)
-  {
-    if(!initializedTest)
-    {
-      lastCommand.leftV = GOAL_AVG;
-      lastCommand.rightV = GOAL_AVG; 
-      initializedTest = true;
-    }
-  
-    // follow at 10 cm
-    lastCommand = wfIMU(initial_imu, 20, GOAL_AVG, lastCommand); //test
-  }
-  else if(currentTest == TurnAtWall)
-  {
-    if(!initializedTest)
-    {
-      lastCommand.leftV = GOAL_AVG;
-      lastCommand.rightV = GOAL_AVG; 
-    }
-    
-    // follow at 25 cm
-    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
-  }
-  else if (currentTest == DriveAndTurn)
-  {
-    if(!initializedTest)
-    {
-      lastCommand.leftV = GOAL_AVG;
-      lastCommand.rightV = GOAL_AVG; 
-    }
-  
-    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
-  }
+//  if(currentSection == RunMotors)
+//  {
+//    
+//    sensors_event_t event; 
+//    bno.getEvent(&event);
+//
+//  }
+//  else if(currentTest == DriveStraightWIMU)
+//  {
+//    if(!initializedTest)
+//    {
+//      Serial.println("initializing drive straight /imu");
+//      bno.getEvent(&initial_imu);
+//      lastCommand.leftV = GOAL_AVG;
+//      lastCommand.rightV = GOAL_AVG;
+//      initializedTest = true; 
+//    }
+//  
+//    lastCommand = driveStraight(initial_imu, lastCommand, GOAL_AVG);
+//  }
+//  else if(currentTest == DriveStraightWIR)
+//  {
+//    if(!initializedTest)
+//    {
+//      lastCommand.leftV = GOAL_AVG;
+//      lastCommand.rightV = GOAL_AVG; 
+//      initializedTest = true;
+//    }
+//  
+//    // follow at 10 cm
+//    lastCommand = wfIMU(initial_imu, 20, GOAL_AVG, lastCommand); //test
+//  }
+//  else if(currentTest == TurnAtWall)
+//  {
+//    if(!initializedTest)
+//    {
+//      lastCommand.leftV = GOAL_AVG;
+//      lastCommand.rightV = GOAL_AVG; 
+//    }
+//    
+//    // follow at 25 cm
+//    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
+//  }
+//  else if (currentTest == DriveAndTurn)
+//  {
+//    if(!initializedTest)
+//    {
+//      lastCommand.leftV = GOAL_AVG;
+//      lastCommand.rightV = GOAL_AVG; 
+//    }
+//  
+//    lastCommand = turnAtWall(260, GOAL_AVG, lastCommand);
+//  }
 
   setMotorVoltage(motorLeft, lastCommand.leftV);
   setMotorVoltage(motorRight, lastCommand.rightV);
 
-//  setMotorVoltage(motorLeft, 200);
-//  setMotorVoltage(motorRight, 200);
+//  setMotorVoltage(motorLeft, 0);
+//  setMotorVoltage(motorRight, 0);
 
 }

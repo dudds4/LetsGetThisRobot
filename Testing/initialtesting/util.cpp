@@ -1,5 +1,16 @@
 #include "util.h"
 
+bool subsamplePrint(int ss)
+{
+  static unsigned x = 0;
+  if(++x > ss)
+  {
+    x = 0;
+    return true;  
+  }  
+  return false;
+}
+
 void printCommand(MotorCommand mc)
 {
   Serial.print(mc.leftV);
@@ -28,11 +39,25 @@ void setMotorVoltage(Motor m, int v)
    }
 }
 
-int getYaw()
+double getYaw()
 {
     sensors_event_t imu_event; 
     bno.getEvent(&imu_event);
     return imu_event.orientation.x;
+}
+
+double getPitch()
+{
+    sensors_event_t imu_event; 
+    bno.getEvent(&imu_event);
+    return imu_event.orientation.y;  
+}
+
+double getRoll()
+{
+    sensors_event_t imu_event; 
+    bno.getEvent(&imu_event);
+    return imu_event.orientation.z;  
 }
 
 bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
@@ -119,13 +144,10 @@ MotorCommand translateWithinLimits(MotorCommand c)
   return c;
 }
 
-MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, int goalAvg)
+MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int goalAvg)
 {
-   /* Get a new sensor event */ 
-  sensors_event_t imu_event; 
-  bno.getEvent(&imu_event);
 
-  int diff = initial.orientation.x - imu_event.orientation.x;
+  double diff = initialAngle - getYaw();
 
   const int DIFF_THRESH = 5;
   const int V_STEP = 10;
@@ -149,78 +171,79 @@ MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, in
   {
     // maybe slowly make rightV == leftV?
      double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
-     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+     if(avg == 0)
+     {
+       lastCommand.leftV =  20;
+       lastCommand.rightV = 20;
+     }
+     else
+     {
+       double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+       
+       lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
+       lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);      
+     }
      
-     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
-     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
-
   }
 
   return translateWithinLimits(lastCommand);
 
 }
 
-MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
-{
-  bool shouldPrint = false;
-  static unsigned counter = 0;
-  if(counter++ > 20)
-  {
-    shouldPrint = true;
-    counter = 0;  
-  }
-  
-  double irAvg = rightIr.getMedian();
-  double diff = irAnalogToCm(irAvg) - dist;
-
-  const double DIFF_THRESH = 5;
-  const int V_STEPR = 2;
-  const int V_STEPL = 2;
-
-  if(diff > DIFF_THRESH) 
-  {
-    lastCommand.rightV += V_STEPR/2;
-    lastCommand.leftV -= V_STEPR/2;
-  }
-  else if(diff < -1 * DIFF_THRESH)
-  {
-    
-//    if(shouldPrint) printCommand(lastCommand);
-    lastCommand.leftV += V_STEPL / 2;
-    lastCommand.rightV -= V_STEPL / 2;
-//    if(shouldPrint) printCommand(lastCommand);
-  }
-  else
-  {
-    // maybe slowly make rightV == leftV?
-     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
-     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
-     
-     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV); //low pass
-     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
-
-  }
-
-  if(shouldPrint) Serial.println(irAnalogToCm(irAvg));
-//  if(shouldPrint) printCommand(lastCommand);
-  lastCommand = translateWithinLimits(lastCommand);
-//  if(shouldPrint) printCommand(lastCommand);
-
-  return lastCommand;
-}
-
-MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorCommand lastCommand)
-{
-  
-  bool shouldPrint = false;
+//MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
+//{
+//  bool shouldPrint = false;
 //  static unsigned counter = 0;
 //  if(counter++ > 20)
 //  {
 //    shouldPrint = true;
 //    counter = 0;  
 //  }
+//  
+//  double irAvg = rightIr.getMedian();
+//  double diff = irAnalogToCm(irAvg) - dist;
+//
+//  const double DIFF_THRESH = 5;
+//  const int V_STEPR = 2;
+//  const int V_STEPL = 2;
+//
+//  if(diff > DIFF_THRESH) 
+//  {
+//    lastCommand.rightV += V_STEPR/2;
+//    lastCommand.leftV -= V_STEPR/2;
+//  }
+//  else if(diff < -1 * DIFF_THRESH)
+//  {
+//    
+////    if(shouldPrint) printCommand(lastCommand);
+//    lastCommand.leftV += V_STEPL / 2;
+//    lastCommand.rightV -= V_STEPL / 2;
+////    if(shouldPrint) printCommand(lastCommand);
+//  }
+//  else
+//  {
+//    // maybe slowly make rightV == leftV?
+//     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
+//     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+//     
+//     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV); //low pass
+//     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
+//
+//  }
+//
+//  if(shouldPrint) Serial.println(irAnalogToCm(irAvg));
+////  if(shouldPrint) printCommand(lastCommand);
+//  lastCommand = translateWithinLimits(lastCommand);
+////  if(shouldPrint) printCommand(lastCommand);
+//
+//  return lastCommand;
+//}
 
-  double angle = (getYaw() - initial.orientation.x)*M_PI/180.0;
+MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand)
+{
+  bool shouldPrint = 0 && subsamplePrint(20);
+  
+  double angle = (getYaw() - initialAngle)*M_PI/180.0;
   if(angle > M_PI) angle -= 2*M_PI;
   
   double irAvg = rightIr.getMedian();
@@ -235,7 +258,7 @@ MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorComma
   const double ANGLE_THRESH = 10 *M_PI/180.0;
   const double A_ = 9 / (ANGLE_THRESH*ANGLE_THRESH);
   
-  double diff_gain = 1/(1+abs(angle)*abs(angle)*A_);
+  double diff_gain = 1/(1+angle*angle*A_);
   double angle_gain = 1 - diff_gain;
 
   double deltaDiff = diff_gain*Kdiff*diff;
@@ -244,10 +267,8 @@ MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorComma
   lastCommand.leftV -= deltaAngle/2;
   lastCommand.rightV += deltaAngle/2;
 
-  if(deltaDiff > 0) 
-    lastCommand.rightV += deltaDiff;
-  else
-    lastCommand.leftV -= deltaDiff;
+  if(deltaDiff > 0) lastCommand.leftV += deltaDiff;
+  else lastCommand.rightV -= deltaDiff;
   
   if(abs(angle) < ANGLE_THRESH && abs(diff) < DIFF_THRESH)
   {
@@ -259,17 +280,19 @@ MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorComma
      lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
 
   }
-
-  if(shouldPrint) 
-  {    
-    Serial.print(dist+diff);
-    Serial.print(" ");
-    Serial.print(dist);
-    Serial.print(" ");
-    printCommand(lastCommand);
-  }
   
   lastCommand = translateWithinLimits(lastCommand);
+
+  if(shouldPrint)
+  {
+    Serial.print(angle);
+    Serial.print(" ");  
+    Serial.print(diff + dist);
+    Serial.print(" ");  
+    Serial.print(dist);
+    Serial.print(" ");  
+    printCommand(lastCommand);
+  }
 
   return lastCommand;
 }

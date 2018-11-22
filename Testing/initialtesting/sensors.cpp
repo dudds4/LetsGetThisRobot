@@ -33,9 +33,7 @@ void initializeIMU()
     Serial.print("No BNO055 detected!");
     while(1);
   }
-
-  Serial.println("before set ext crystal!");
-
+  
   bno.setExtCrystalUse(true);
 }
 
@@ -55,7 +53,12 @@ void IrSensor::refresh()
   sum += filterArray[0] / (double)IR_SENSOR_FILTER_N;
   avg = sum ;
 }
-    
+
+double IrSensor::getDist()
+{
+  return irAnalogToCm(getMedian());
+}
+
 unsigned IrSensor::getMedian() 
 {
   unsigned sorted[IR_SENSOR_FILTER_N];

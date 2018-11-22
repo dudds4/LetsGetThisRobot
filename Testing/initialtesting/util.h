@@ -18,10 +18,13 @@ struct TurnState
   int initialYaw;
   int lastYaw;
   int goalYaw;
+  void reset() { initialized = false; }
 };
 
 // returns yaw read from global imu sensor
-int getYaw();
+double getYaw();
+double getPitch();
+double getRoll();
 
 // runs a turn, outputs to MotorCommand* mc, returns true when turn is complete
 bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc);
@@ -39,11 +42,11 @@ MotorCommand translateWithinLimits(MotorCommand c);
 // -- utility functions for common navigation tasks --
 
 // drives straight using IMU to correct orientation
-MotorCommand driveStraight(sensors_event_t initial, MotorCommand lastCommand, int goalAvg);
+MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int goalAvg);
 
 // drives straight using the mounted IR to travel a straight line
-MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
+//MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
 
-MotorCommand wfIMU(sensors_event_t initial, double dist, int goalAvg, MotorCommand lastCommand);
+MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand);
 
 #endif

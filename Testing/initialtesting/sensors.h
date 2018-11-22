@@ -15,6 +15,7 @@ struct IrSensor
   void refresh();
   double getAvg() { return avg; }
   unsigned getMedian();
+  double getDist();
   
 private:  
   int pin;

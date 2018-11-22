@@ -15,6 +15,7 @@ struct MotorCommand
 {
   int leftV;
   int rightV;
+  void reset() { leftV = 0; rightV = 0; }
 };
 
 extern Motor motorLeft;
