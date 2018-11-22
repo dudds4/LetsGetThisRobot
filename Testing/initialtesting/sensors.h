@@ -4,29 +4,44 @@
 #include <Adafruit_BNO055.h>
 #include <math.h>
 
-struct IrSensor 
+struct AveragedSensor
 {
+  #define SENSOR_FILTER_N 20
   
-  #define IR_SENSOR_FILTER_N 20
-  
-  IrSensor() = delete;
-  IrSensor(int p) : pin(p) {}
+  AveragedSensor() = delete;
+  AveragedSensor(int p) : pin(p) {}
 
   void refresh();
   double getAvg() { return avg; }
   unsigned getMedian();
-  double getDist();
   
-private:  
+protected:  
   int pin;
-  unsigned int filterArray[IR_SENSOR_FILTER_N];
-  double avg = 0;
+  unsigned int filterArray[SENSOR_FILTER_N];
+  double avg = 0;    
+};
+
+struct IrSensor : AveragedSensor
+{  
+  IrSensor() = delete;
+  IrSensor(int p) : AveragedSensor(p) {}
+
+  double getDist();
+};
+
+struct Antenna : AveragedSensor
+{
+    Antenna() = delete;
+    Antenna(int p) : AveragedSensor(p) {}
 };
 
 /* Global Sensors Variables */
 extern Adafruit_BNO055 bno;
 extern IrSensor frontIr;
 extern IrSensor rightIr;
+
+extern Antenna rampIR_L;
+extern Antenna rampIR_R;
 
 // convenience function, initializes both ir sensor analog pins
 void initializeIR();

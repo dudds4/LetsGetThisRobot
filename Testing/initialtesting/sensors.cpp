@@ -4,23 +4,42 @@
 #define ir2    A1 // Right side
 
 // ramp irs
-#define IR_L 46
-#define IR_R 48
+#define ir_L A2
+#define ir_R A3
 
 IrSensor frontIr(ir1);
 IrSensor rightIr(ir2);
+
+Antenna rampIR_L(ir_L);
+Antenna rampIR_R(ir_R);
+
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 void initializeIR() 
 {
   pinMode(ir1, INPUT);
   pinMode(ir2, INPUT);
+  pinMode(ir_L, INPUT);
+  pinMode(ir_R, INPUT);
 }
-
 bool getIR() 
 {
   frontIr.refresh();
   rightIr.refresh();
+  rampIR_L.refresh();
+  rampIR_R.refresh();
+
+  return true;
+}
+
+void initializeIRramp() {
+  pinMode(ir_L, INPUT);
+  pinMode(ir_R, INPUT);
+}
+bool getIRramp() 
+{
+  rampIR_L.refresh();
+  rampIR_R.refresh();
 
   return true;
 }
@@ -37,20 +56,20 @@ void initializeIMU()
   bno.setExtCrystalUse(true);
 }
 
-void IrSensor::refresh()
+void AveragedSensor::refresh()
 {
   double sum = 0;
   
   // shift values up
-  for(int i = IR_SENSOR_FILTER_N - 1; i > 0; i--) 
+  for(int i = SENSOR_FILTER_N - 1; i > 0; i--) 
   {
     filterArray[i] = filterArray[i-1];
-    sum += filterArray[i] / (double)IR_SENSOR_FILTER_N;  
+    sum += filterArray[i] / (double)SENSOR_FILTER_N;  
   }
   
   // read new value
   filterArray[0] = analogRead(pin);
-  sum += filterArray[0] / (double)IR_SENSOR_FILTER_N;
+  sum += filterArray[0] / (double)SENSOR_FILTER_N;
   avg = sum ;
 }
 
@@ -59,20 +78,25 @@ double IrSensor::getDist()
   return irAnalogToCm(getMedian());
 }
 
-unsigned IrSensor::getMedian() 
+double Antenna::getDist()
 {
-  unsigned sorted[IR_SENSOR_FILTER_N];
-  memcpy(sorted, filterArray, sizeof(unsigned)*IR_SENSOR_FILTER_N);
+  return antennaToCm(getMedian());
+}
+
+unsigned AveragedSensor::getMedian() 
+{
+  unsigned sorted[SENSOR_FILTER_N];
+  memcpy(sorted, filterArray, sizeof(unsigned)*SENSOR_FILTER_N);
 
   unsigned minIdx, tmp;
   
   // sort sorted, selection sort
-  for(int i = 0; i < IR_SENSOR_FILTER_N-1; ++i)
+  for(int i = 0; i < SENSOR_FILTER_N-1; ++i)
   {
     minIdx = i;
 
     // find min value
-    for(int j = i+1; j < IR_SENSOR_FILTER_N; ++j)
+    for(int j = i+1; j < SENSOR_FILTER_N; ++j)
     {
       if(sorted[j] < sorted[minIdx]) 
         minIdx = j;
@@ -87,5 +111,5 @@ unsigned IrSensor::getMedian()
     }
   }
 
-  return sorted[IR_SENSOR_FILTER_N/2];
+  return sorted[SENSOR_FILTER_N/2];
 }

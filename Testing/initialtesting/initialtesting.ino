@@ -1,6 +1,7 @@
 #include "sensors.h"
 #include "controls.h"
 #include "rampfinding.h"
+#include "rampclimbing.h"
 #include "Adafruit_BNO055.h"
 
 static MotorCommand lastCommand;
@@ -46,6 +47,7 @@ int state = 0;
 
 unsigned loopCounter = 0;
 RampFinder rampFinder;
+RampClimber rampClimber;
 
 void loop() 
 {
@@ -70,7 +72,8 @@ void loop()
       break;
 
     case ClimbRamp:
-      lastCommand.reset();
+      lastCommand = rampClimber.run(lastCommand);
+      
       break;
 
     default: 
