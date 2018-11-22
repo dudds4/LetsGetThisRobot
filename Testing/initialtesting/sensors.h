@@ -32,7 +32,11 @@ struct IrSensor : AveragedSensor
 struct Antenna : AveragedSensor
 {
     Antenna() = delete;
-    Antenna(int p) : AveragedSensor(p) {}
+    Antenna(int digpin, int readpin) : AveragedSensor(readpin), digPin(digpin) {}
+
+    unsigned getRaw();
+private:
+  int digPin;
 };
 
 /* Global Sensors Variables */

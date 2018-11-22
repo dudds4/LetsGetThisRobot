@@ -4,14 +4,17 @@
 #define ir2    A1 // Right side
 
 // ramp irs
+#define ir_L_ctrl 4
+#define ir_R_ctrl 2
+
 #define ir_L A2
 #define ir_R A3
 
 IrSensor frontIr(ir1);
 IrSensor rightIr(ir2);
 
-Antenna rampIR_L(ir_L);
-Antenna rampIR_R(ir_R);
+Antenna rampIR_L(ir_L_ctrl, ir_L);
+Antenna rampIR_R(ir_R_ctrl, ir_R);
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -21,6 +24,12 @@ void initializeIR()
   pinMode(ir2, INPUT);
   pinMode(ir_L, INPUT);
   pinMode(ir_R, INPUT);
+
+  pinMode(ir_L_ctrl, OUTPUT);
+  pinMode(ir_R_ctrl, OUTPUT);
+
+  digitalWrite(ir_L_ctrl, HIGH);
+  digitalWrite(ir_R_ctrl, HIGH);
 }
 bool getIR() 
 {
@@ -78,11 +87,11 @@ double IrSensor::getDist()
   return irAnalogToCm(getMedian());
 }
 
-double Antenna::getDist()
+unsigned Antenna::getRaw()
 {
-  return antennaToCm(getMedian());
+  return analogRead(pin);  
 }
-
+    
 unsigned AveragedSensor::getMedian() 
 {
   unsigned sorted[SENSOR_FILTER_N];

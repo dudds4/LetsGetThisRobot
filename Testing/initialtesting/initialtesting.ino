@@ -61,25 +61,36 @@ void loop()
   
   bool shouldPrint = false;
   static unsigned counter = 0;
-  if(++counter > 25) { shouldPrint = true; counter = 0; }
+  if(++counter > 18) { shouldPrint = true; counter = 0; }
 
-  switch(currentSection)
+  if(shouldPrint)
   {
-    case FindRamp:
-      lastCommand = rampFinder.run(lastCommand);
-      if(rampFinder.isDone())
-        currentSection = ClimbRamp;
-      break;
-
-    case ClimbRamp:
-      lastCommand = rampClimber.run(lastCommand);
-      
-      break;
-
-    default: 
-      lastCommand.reset();
-      break;
+    double aa = rampIR_L.getRaw();
+    Serial.print(aa);
+    Serial.print(" ");
+    aa = rampIR_R.getRaw();
+    Serial.println(aa);
+//    Serial.println(rampIR_L.getMedian());
+//    Serial.println(rampIR_R.getMedian());
   }
+  
+//  switch(currentSection)
+//  {
+//    case FindRamp:
+//      lastCommand = rampFinder.run(lastCommand);
+//      if(rampFinder.isDone())
+//        currentSection = ClimbRamp;
+//      break;
+//
+//    case ClimbRamp:
+//      lastCommand = rampClimber.run(lastCommand);
+//      
+//      break;
+//
+//    default: 
+//      lastCommand.reset();
+//      break;
+//  }
   
 //  if(currentSection == RunMotors)
 //  {

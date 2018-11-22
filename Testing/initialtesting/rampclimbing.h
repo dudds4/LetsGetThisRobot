@@ -10,7 +10,7 @@ struct RampClimber
   MotorCommand run(MotorCommand mc)
   {
     
-    Serial.print();
+//    Serial.print();
     
     /* L8R
     if(state == 0) 
