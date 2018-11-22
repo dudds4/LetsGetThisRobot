@@ -3,7 +3,6 @@
 #include "rampfinding.h"
 #include "Adafruit_BNO055.h"
 
-static MotorCommand newCommand;
 static MotorCommand lastCommand;
 static TurnState ts;
 
@@ -41,11 +40,12 @@ bool initializedTest = false;
 sensors_event_t initial_imu;
 double turnAngle = 0;
 
-enum Section { FindRamp, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
+enum Section { FindRamp, ClimbRamp, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
 Section currentSection = FindRamp;
 int state = 0;
 
 unsigned loopCounter = 0;
+RampFinder rampFinder;
 
 void loop() 
 {
@@ -60,89 +60,21 @@ void loop()
   bool shouldPrint = false;
   static unsigned counter = 0;
   if(++counter > 25) { shouldPrint = true; counter = 0; }
-  
-  const int GOAL_AVG = 250;
-
-  const double FWDIST = 27;
-  const double ROB_OFFSET = 8;
-  const double SWDIST = 30;
 
   switch(currentSection)
   {
     case FindRamp:
-      
-      if(state == 0)
-      { // drive straight until front ir below threshold
-        
-        if(frontIr.getDist() < FWDIST)
-        {
-          Serial.println("Entering state 1");
-          state = 1;
-          ts.reset();
-          lastCommand = MotorCommand();
-        }
-        else
-        {
-          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
-        }
-      }
-      else if(state == 1)
-      { // 90 deg turn left
-        if(turnOnSpot(ts, -90, &lastCommand)) 
-        { 
-          Serial.println("Entering state 2");
-          state = 2;
-          initialYaw = getYaw();
-          lastCommand.reset();
-        }
-      }
-      else if(state == 2)
-      { // Follow the wall!
-        if(frontIr.getDist() < SWDIST)
-        {
-          Serial.println("Entering state 3");
-          state = 3;
-          lastCommand.reset();
-          ts.reset();
-        }
-        else
-        {
-          lastCommand = wallFollow(initialYaw, FWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
-        }
-      }
-      else if(state == 3)
-      {
-        if(turnOnSpot(ts, -90, &lastCommand)) 
-        {
-          Serial.println("Entering state 4");
-          state = 4;
-          initialYaw = getYaw();
-          initialPitch = getPitch();
-          initialRoll = getRoll();
-          lastCommand.reset();
-        } 
-      }
-      else if(state == 4)
-      {
-        const double PITCH_THRESHOLD = 10;
-        // drive along the wall until we get that ramp booiiis
-        if(abs(getPitch() - initialPitch) > PITCH_THRESHOLD)
-        {
-          Serial.print(getPitch());
-          Serial.print(" ");
-          Serial.print(getRoll());
-          lastCommand.reset();
-        }
-        else
-        {
-          lastCommand = wallFollow(initialYaw, SWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
-        }
-      }
-    
+      lastCommand = rampFinder.run(lastCommand);
+      if(rampFinder.isDone())
+        currentSection = ClimbRamp;
+      break;
+
+    case ClimbRamp:
+      lastCommand.reset();
       break;
 
     default: 
-      lastCommand = MotorCommand();
+      lastCommand.reset();
       break;
   }
   
