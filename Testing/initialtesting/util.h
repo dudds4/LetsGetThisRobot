@@ -15,9 +15,11 @@ void setMotorVoltage(Motor m, int v);
 struct TurnState 
 {
   bool initialized = false;
-  int initialYaw;
-  int lastYaw;
-  int goalYaw;
+  double initialYaw;
+  double lastYaw;
+  double goalYaw;
+  double errorSum = 0;
+  double lastError = 0;
   void reset() { initialized = false; }
 };
 

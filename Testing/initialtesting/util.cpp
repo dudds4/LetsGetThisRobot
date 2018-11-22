@@ -1,5 +1,17 @@
 #include "util.h"
 
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+
+#ifndef LIMIT
+#define LIMIT(x, high, low) (MAX(MIN(x, high),low))
+#endif
+
 bool subsamplePrint(int ss)
 {
   static unsigned x = 0;
@@ -64,10 +76,12 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
 {
   if(!ts.initialized)
   {
-//    Serial.println("initializing");
     ts.initialYaw = getYaw();
     ts.lastYaw = ts.initialYaw;
-    ts.goalYaw = ts.initialYaw + deg;
+    ts.goalYaw = ts.initialYaw + deg + ts.lastError;
+    ts.errorSum = 0;
+    ts.lastError = 0;
+    mc->reset();
     ts.initialized = true;
   }
 
@@ -76,47 +90,53 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   // check wrap around
   const int WRAP_THRESH = 30;
   
-  // case 1: we've wrapped around from 360 to 0
-  if(ts.lastYaw > (360-WRAP_THRESH) && yaw < WRAP_THRESH)
-    ts.goalYaw -= 360;
-  // case 2: we've wrapped around from 0 to 360
-  else if(ts.lastYaw < WRAP_THRESH && yaw > (360-WRAP_THRESH))
-    ts.goalYaw += 360;
-
+  // check positive and negative wrap arounds
+  if(ts.lastYaw > (360-WRAP_THRESH) && yaw < WRAP_THRESH)       ts.goalYaw -= 360;
+  else if(ts.lastYaw < WRAP_THRESH && yaw > (360-WRAP_THRESH))  ts.goalYaw += 360;
   ts.lastYaw = yaw;
 
   // compute directions to turn
-  int diff =  ts.goalYaw - yaw;
+  double diff =  ts.goalYaw - yaw;
 
-//  Serial.print(yaw);
-//  Serial.print(" ");
-//  Serial.println(ts.goalYaw);
+  Serial.print(diff);
+  Serial.print(" -- ");
+
+  // this line prevents overshooting because of built up I gain
+  if(diff*ts.lastError < 0) ts.errorSum = 0;
+
+  // compute stiction factor
+  double vel = diff - ts.lastError;
+  double stictionFactor = 1 / ( 1 + vel*vel);
   
   // case 1: we've finished the turn
-  const int DONE_THRESHOLD = 3;
-  if(abs(diff) < DONE_THRESHOLD)
+  const double DONE_THRESHOLD = 0.6;
+  if(abs(diff) < DONE_THRESHOLD && abs(ts.lastError) < DONE_THRESHOLD)
   {
       mc->leftV = 0;
       mc->rightV = 0;
       return true;
-  }
+  }  
+  ts.lastError = diff;
 
-  const int MOTOR_V = 200;
+  // case 2, PI control
+  const double Kp = 4.2, Ki = 0.25;
+  ts.errorSum += Ki * diff;
+  double result = Kp * diff + ts.errorSum; 
   
-  // case 2: we need to turn CW
-  if(diff > 0)
-  {
-    mc->leftV = MOTOR_V;
-    mc->rightV = -1 * MOTOR_V;
-  }
-  // case 3: we need to turn CCW
-  else
-  {
-    mc->leftV = -1 * MOTOR_V;
-    mc->rightV = MOTOR_V;
-  }
+  // apply stiction
+  const int STICTION_POS_R = 40, STICTION_POS_L = 95;
+  const int STICTION_NEG_R = -80, STICTION_NEG_L = -90;
+  
+  mc->leftV = result       + (stictionFactor*((result > 0) ? STICTION_POS_L : STICTION_NEG_L));
+  mc->rightV = -1 * result + (stictionFactor*((result < 0) ? STICTION_POS_R : STICTION_NEG_R));
 
+  mc->leftV = LIMIT(mc->leftV, 200, -200);
+  mc->rightV = LIMIT(mc->rightV, 200, -200);
 
+//  *mc = translateWithinLimits(*mc);
+
+  printCommand(*mc);
+  
   return false;
 }
 
@@ -189,55 +209,6 @@ MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int go
   return translateWithinLimits(lastCommand);
 
 }
-
-//MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand)
-//{
-//  bool shouldPrint = false;
-//  static unsigned counter = 0;
-//  if(counter++ > 20)
-//  {
-//    shouldPrint = true;
-//    counter = 0;  
-//  }
-//  
-//  double irAvg = rightIr.getMedian();
-//  double diff = irAnalogToCm(irAvg) - dist;
-//
-//  const double DIFF_THRESH = 5;
-//  const int V_STEPR = 2;
-//  const int V_STEPL = 2;
-//
-//  if(diff > DIFF_THRESH) 
-//  {
-//    lastCommand.rightV += V_STEPR/2;
-//    lastCommand.leftV -= V_STEPR/2;
-//  }
-//  else if(diff < -1 * DIFF_THRESH)
-//  {
-//    
-////    if(shouldPrint) printCommand(lastCommand);
-//    lastCommand.leftV += V_STEPL / 2;
-//    lastCommand.rightV -= V_STEPL / 2;
-////    if(shouldPrint) printCommand(lastCommand);
-//  }
-//  else
-//  {
-//    // maybe slowly make rightV == leftV?
-//     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
-//     double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
-//     
-//     lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV); //low pass
-//     lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);     
-//
-//  }
-//
-//  if(shouldPrint) Serial.println(irAnalogToCm(irAvg));
-////  if(shouldPrint) printCommand(lastCommand);
-//  lastCommand = translateWithinLimits(lastCommand);
-////  if(shouldPrint) printCommand(lastCommand);
-//
-//  return lastCommand;
-//}
 
 MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand)
 {
