@@ -4,9 +4,12 @@
 #include "util.h"
 
 const double FWDIST = 27;
-const double ROB_OFFSET = 8;
 const double SWDIST = 25;
+
+const double ROB_OFFSET = 8;
+
 const int GOAL_AVG = 250;
+
 const int SW_THRESH = 2;
 
 struct RampFinder
@@ -15,9 +18,6 @@ struct RampFinder
 	double initialYaw, initialPitch, initialRoll;
 	int state = 0;
 	int successCounter = 0;
-
-  const double FW_DIST = 15;
-  const double SW_DIST = 15;
 
 	double errorSum = 0;
 	double lastError = 0;
@@ -59,7 +59,7 @@ struct RampFinder
 
 			int error = frontIr.getDist() - SWDIST;
 
-			if (frontIr.getDist() < SW_DIST)
+			if (frontIr.getDist() < SWDIST)
 			{
 				state = 3;
 			}
@@ -132,48 +132,5 @@ struct RampFinder
 	}
 
 };
-
-// drives straight until it sees a wall, then turns, and starts wall following..
-// not really a utility function, this needs to move
-//
-//MotorCommand turnAtWall(double dist, int goalAvg, MotorCommand lastCommand)
-//{
-//
-//  getIR();  //update ir readings
-//  static TurnState ts;
-//  static int state = 0;
-//
-//  if(state == 0)
-//  {
-//    double frontDist = irAnalogToCm(frontIr.getAvg());
-//
-//    if (frontDist <= dist)
-//    {
-//      state = 1;
-//      ts = TurnState();
-//      Serial.println("Transition to turning state");  
-//    } 
-//    else
-//      return genWallFollow(dist, goalAvg, lastCommand);    
-//  }
-//  else if(state == 1)
-//  {
-//     if(turnOnSpot(ts, 90, &lastCommand))
-//     {
-//        lastCommand.rightV = goalAvg;
-//        lastCommand.leftV = goalAvg;
-//        
-//        Serial.println("Transition to second driving state");
-//        state = 2; 
-//     }
-//
-//     return lastCommand;
-//  }
-//  else if(state == 2)
-//  {
-//    return genWallFollow(dist, goalAvg, lastCommand);        
-//  }
-//  
-//}
 
 #endif //RAMPFIND_H
