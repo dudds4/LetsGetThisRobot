@@ -14,7 +14,7 @@ struct RampFinder
 	TurnState ts;
 	double initialYaw, initialPitch, initialRoll;
 	int state = 0;
-	int success_counter = 0;
+	int successCounter = 0;
 
   const double FW_DIST = 15;
   const double SW_DIST = 15;
@@ -27,8 +27,8 @@ struct RampFinder
 	MotorCommand run(MotorCommand lastCommand)
 	{
 		if (state == 0)
-		{ // drive straight until front ir below threshold
-
+		{ 
+		  // drive straight until front ir below threshold
 			if (frontIr.getDist() < FWDIST)
 			{
 				Serial.println("Entering state 1");
@@ -42,7 +42,8 @@ struct RampFinder
 			}
 		}
 		else if (state == 1)
-		{ // 90 deg turn CCW
+		{ 
+		  // 90 deg turn CCW
 			if (turnOnSpot(ts, -90, &lastCommand))
 			{
 				Serial.println("Entering state 2");
@@ -61,19 +62,18 @@ struct RampFinder
 			if (frontIr.getDist() < SW_DIST)
 			{
 				state = 3;
-				// success_counter++;
 			}
 			else if (state == 3)
 			{
 				if (abs(error) < SW_THRESH)
 				{
-					success_counter++;
+					successCounter++;
 				}
 				else
 				{
-					success_counter = 0;
+					successCounter = 0;
 
-					//move motors + or - to reduce the error
+					// move motors + or - to reduce the error
 					const double Kp = 5, Ki = 0.1;
 
 					// prevent overshoot from integral gain
@@ -86,7 +86,7 @@ struct RampFinder
 					lastCommand.set(result, result);
 				}
 
-				if (success_counter > 2)
+				if (successCounter > 2)
 				{
 					Serial.println("Entering state 3");
 					state = 4;
