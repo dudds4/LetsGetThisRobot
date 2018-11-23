@@ -210,6 +210,51 @@ MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int go
 
 }
 
+MotorCommand driveStraightBackwards(double initialAngle, MotorCommand lastCommand, int goalAvg)
+{
+
+  double diff = initialAngle - getYaw();
+
+  const int DIFF_THRESH = 5;
+  const int V_STEP = 10;
+  
+  if(abs(diff) > DIFF_THRESH) 
+  { // Robot went off course
+    if((diff > DIFF_THRESH && diff < 180) || (diff < -180 && diff > (-360 + DIFF_THRESH))) 
+    {   
+        // Robot turned left
+        //speed up left motor
+        lastCommand.rightV += V_STEP;
+    }
+    else if ((diff > -180 && diff < -1*DIFF_THRESH) || (diff < (360-DIFF_THRESH) && diff > 180)) 
+    {   
+        // Robot turned right
+        //speed up right motor
+        lastCommand.leftV += V_STEP;
+    }
+  }
+  else
+  {
+    // maybe slowly make rightV == leftV?
+     double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
+     if(avg == 0)
+     {
+       lastCommand.leftV =  20;
+       lastCommand.rightV = 20;
+     }
+     else
+     {
+       double multi = sqrt(abs(goalAvg / avg)) * avg / abs(avg); 
+       
+       lastCommand.leftV =  multi * 0.5 * (avg + lastCommand.leftV);
+       lastCommand.rightV = multi * 0.5 * (avg + lastCommand.rightV);      
+     }
+     
+  }
+
+  return translateWithinLimits(lastCommand);
+}
+
 MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand)
 {
   bool shouldPrint = 0 && subsamplePrint(20);

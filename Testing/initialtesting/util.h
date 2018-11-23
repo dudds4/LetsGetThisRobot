@@ -45,6 +45,7 @@ MotorCommand translateWithinLimits(MotorCommand c);
 
 // drives straight using IMU to correct orientation
 MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int goalAvg);
+MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand, int goalAvg);
 
 // drives straight using the mounted IR to travel a straight line
 //MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);

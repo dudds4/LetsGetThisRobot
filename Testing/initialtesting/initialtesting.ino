@@ -2,8 +2,9 @@
 #include "controls.h"
 #include "rampfinding.h"
 #include "rampclimbing.h"
-#include "basefinding.h"
+
 #include "Adafruit_BNO055.h"
+
 
 static MotorCommand mc;
 static TurnState ts;
@@ -24,11 +25,8 @@ void setup()
   if(changePWMFrequencies)
   {    
     // change up PWM frequencies for motor PWM pins
-    // Timer 3 for outputs 2/3/5
     TCCR3B &= ~(0x07);
     TCCR3B |= 0x02;
-    
-    // Timer 4 for outputs 9,10  
     TCCR4B &= ~(0x07);
     TCCR4B |= 0x02;
   }
@@ -51,8 +49,9 @@ int state = 0;
 unsigned loopCounter = 0;
 RampFinder rampFinder;
 RampClimber rampClimber;
-BaseFinder baseFinder;
+//BaseFinder baseFinder;
 double turnAngle = 90;
+
 void loop() 
 {
   if(loopCounter++ < 20) 
@@ -68,9 +67,34 @@ void loop()
   static unsigned counter = 0;
   if(++counter > 18) { shouldPrint = true; counter = 0; }
 
-  mc = baseFinder.run(mc);
+//  mc = baseFinder.run(mc);
+    
+//  switch(currentSection)
+//  {
+//    case FindRamp:
+//      lastCommand = rampFinder.run(lastCommand);
+//      Serial.print(frontIr.getDist());
+//      Serial.print(" ");
+//      Serial.println(rightIr.getDist());
+//      
+////      if(rampFinder.isDone())
+////        currentSection = ClimbRamp;
+//      break;
+//
+//    case ClimbRamp:
+//      lastCommand = rampClimber.run(lastCommand);
+//      
+//      break;
+//
+//    default: 
+//      lastCommand.reset();
+//      break;
+//  }
 
   setMotorVoltage(motorLeft, mc.leftV);
   setMotorVoltage(motorRight, mc.rightV);
 
 }
+
+
+#include "basefinding.h"
