@@ -210,7 +210,7 @@ MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int go
 
 }
 
-MotorCommand driveStraightBackwards(double initialAngle, MotorCommand lastCommand, int goalAvg)
+MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand, int goalAvg)
 {
 
   double diff = initialAngle - getYaw();

@@ -17,14 +17,20 @@ public:
   {
     if(!initialized) 
     {
-      pitchI = getPitch();
-      rollI = getRoll();
+
       yaw = getYaw(); 
       
       Serial.println("base finder starting...");
+      initialized++;    
+      state = 99;
+    }
+
+    if(initialized++ < 10)
+    {
+      pitchI = getPitch();
+      rollI = getRoll();  
     }
     
-    state = 99;
     
     if(state == 0)
     {
@@ -108,7 +114,7 @@ public:
     else if(state == 100)
     {
       // we just saw the base on our right
-      if(turnOnSpot(ts, 90, &mc))
+      if(turnOnSpot(ts, 90, &lc))
       {
         state = 101;
         yaw = getYaw();  
@@ -116,22 +122,30 @@ public:
     }
     else if(state == 101)
     {
-      driveStraight(yaw, mc, 200);
+      driveStraight(yaw, lc, 200);
     }
 
     if(state < 100)
     {
       // check if we saw the base
       double irReading = rightIr.getDist();
-      const double BASE_IR_TOL = 5;
+      Serial.println(irReading);
+      const double BASE_IR_TOL = 20;
       
       if(abs(irReading - lastIrReading) > BASE_IR_TOL && initialized)
       {
         Serial.println("Found base with ir");
         state = 100;
+        lc.leftV = 0;
+        lc.rightV = 0;
+      }
+      else
+      {
+        lc = driveStraight(yaw, lc, 200);
       }
       
       lastIrReading = irReading;
+      
     }
 
     static unsigned uu = 0;
@@ -141,20 +155,19 @@ public:
     }
 
     // check if we ran over base
-    const double ROTATION_TOL = 1;
+    const double ROTATION_TOL = 40;
     double pdiff = getPitch() - pitchI;
     double rdiff = getRoll() - rollI;
     double rotation = rdiff*rdiff+pdiff*pdiff;
     
-    Serial.println(rotation);
+//    Serial.println(rotation);
     
-    if(rotation > ROTATION_TOL) 
+    if(rotation > 30) 
     {
       Serial.println("Found Base; rotation");
       state = 999;
     }
 
-    initialized = true;
     return lc;
   }
 

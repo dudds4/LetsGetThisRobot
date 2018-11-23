@@ -2,6 +2,7 @@
 #include "controls.h"
 #include "rampfinding.h"
 #include "rampclimbing.h"
+#include "basefinding.h"
 
 #include "Adafruit_BNO055.h"
 
@@ -49,7 +50,7 @@ int state = 0;
 unsigned loopCounter = 0;
 RampFinder rampFinder;
 RampClimber rampClimber;
-//BaseFinder baseFinder;
+BaseFinder baseFinder;
 double turnAngle = 90;
 
 void loop() 
@@ -67,7 +68,7 @@ void loop()
   static unsigned counter = 0;
   if(++counter > 18) { shouldPrint = true; counter = 0; }
 
-//  mc = baseFinder.run(mc);
+  mc = baseFinder.run(mc);
     
 //  switch(currentSection)
 //  {
@@ -91,9 +92,9 @@ void loop()
 //      break;
 //  }
 
+
   setMotorVoltage(motorLeft, mc.leftV);
   setMotorVoltage(motorRight, mc.rightV);
-
 }
 
 
