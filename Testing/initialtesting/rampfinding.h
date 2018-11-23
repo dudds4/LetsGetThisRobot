@@ -14,7 +14,10 @@ struct RampFinder
 	TurnState ts;
 	double initialYaw, initialPitch, initialRoll;
 	int state = 0;
-	int auccess_counter = 0;
+	int success_counter = 0;
+
+  const double FW_DIST = 15;
+  const double SW_DIST = 15;
 
 	double errorSum = 0;
 	double lastError = 0;
@@ -74,7 +77,8 @@ struct RampFinder
 					const double Kp = 5, Ki = 0.1;
 
 					// prevent overshoot from integral gain
-					if (error*lastError < 0) errorSum = 0;
+					if (error*lastError < 0) 
+					  errorSum = 0;
 
 					errorSum += Ki * error;
 					double result = Kp * error + errorSum;

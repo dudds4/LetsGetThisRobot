@@ -6,6 +6,8 @@ struct RampClimber
   TurnState ts;
   double initialYaw, initialPitch, initialRoll;
   int state = 0;
+
+  bool isDone() { return true; }
   
   MotorCommand run(MotorCommand mc)
   {

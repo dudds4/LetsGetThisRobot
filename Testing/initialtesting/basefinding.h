@@ -11,15 +11,13 @@ private:
   bool foundBase = false;
 public:
 
-  bool complete() { return foundBase; }
+  bool isDone() { return foundBase; }
   
 	MotorCommand run(MotorCommand lc)
   {
     if(!initialized) 
     {
-
-      yaw = getYaw(); 
-      
+      yaw = getYaw();  
       Serial.println("base finder starting...");
       initialized++;    
       state = 99;

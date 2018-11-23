@@ -6,7 +6,6 @@
 
 #include "Adafruit_BNO055.h"
 
-
 static MotorCommand mc;
 static TurnState ts;
 
@@ -39,19 +38,16 @@ void setup()
   Serial.println("Finished setup");
 }
 
-bool doneTurn = false;
-bool initializedTest = false;
-sensors_event_t initial_imu;
-
-enum Section { FindRamp, ClimbRamp, DriveStraightWIMU, DriveStraightWIR, DriveAndTurn, TurnAtWall, wallfIMU };
-Section currentSection = FindRamp;
-int state = 0;
+enum Section { FindRamp, ClimbRamp, BaseFinding };
 
 unsigned loopCounter = 0;
+
 RampFinder rampFinder;
 RampClimber rampClimber;
 BaseFinder baseFinder;
-double turnAngle = 90;
+
+const bool TEST_SEPARATE = true;
+Section currentSection = FindRamp;
 
 void loop() 
 {
@@ -67,31 +63,58 @@ void loop()
   bool shouldPrint = false;
   static unsigned counter = 0;
   if(++counter > 18) { shouldPrint = true; counter = 0; }
-
-  mc = baseFinder.run(mc);
     
-//  switch(currentSection)
-//  {
-//    case FindRamp:
-//      lastCommand = rampFinder.run(lastCommand);
-//      Serial.print(frontIr.getDist());
-//      Serial.print(" ");
-//      Serial.println(rightIr.getDist());
-//      
-////      if(rampFinder.isDone())
-////        currentSection = ClimbRamp;
-//      break;
-//
-//    case ClimbRamp:
-//      lastCommand = rampClimber.run(lastCommand);
-//      
-//      break;
-//
-//    default: 
-//      lastCommand.reset();
-//      break;
-//  }
+  switch(currentSection)
+  {
+    case FindRamp:
+      mc = rampFinder.run(mc);      
+      if(rampFinder.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: find ramp");
+          while(1) {}  
+        } 
+        else
+          currentSection = ClimbRamp;
+        
+      }
+      break;
 
+    case ClimbRamp:
+      mc = rampClimber.run(mc);
+      if(rampClimber.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: climb ramp");
+          while(1) {}  
+        } 
+        else
+          currentSection = BaseFinding;
+        
+      }
+      break;
+
+    case BaseFinding:
+      mc = baseFinder.run(mc);
+      if(baseFinder.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: climb ramp");
+          while(1) {}  
+        } 
+        else
+          currentSection = BaseFinding;        
+      }
+
+      break;
+
+    default: 
+      mc.reset();
+      break;
+  }
 
   setMotorVoltage(motorLeft, mc.leftV);
   setMotorVoltage(motorRight, mc.rightV);
