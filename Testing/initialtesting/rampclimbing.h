@@ -14,6 +14,15 @@ struct RampClimber
   int state = 0;
   unsigned loopCtr = 0;
   unsigned ctr = 0;
+
+  int flatCounter = 0;
+  int isFlat = 0;
+
+private:
+  bool _isDone = false;
+  
+public:
+  bool isDone() { return _isDone; }
   
   MotorCommand run(MotorCommand lastCommand)
   {
@@ -25,67 +34,88 @@ struct RampClimber
 
     if(state == 0)
     {
-      initialYaw = getYaw();
-      initialPitch = getPitch();
-      lastCommand = MotorCommand();
-      //lastCommand.leftV = 200;
-      //lastCommand.rightV = 200;
-      ts.reset(); 
-      Serial.println("Finished state 0");
-      state = 2; //skip state 1 for testing
+      // delay 20 iterations
+      if(++ctr < 20)
+      {
+        lastCommand.reset();
+      }
+      else
+      {
+        ctr = 0;
+        initialYaw = getYaw();
+        initialPitch = getPitch();
+        initialRoll = getRoll();
+        lastCommand.reset();
+        ts.reset();   
+        Serial.println("Finished state 0");
+        state = 1;
+      }      
     }
-    if(state == 1) 
-    { // Getting on ramp
+    else if(state == 1) 
+    { 
+      // Getting on ramp
 
       if(initialPitch - getPitch() > IMU_THRESH) //on the ramp
       {
-        if(irL > 900) // too far right
-        {
-          Serial.println("need to turn left");
-          //reverse, turn CCW, forward
-          if(ctr < 500)
-          {
-            lastCommand.leftV = -100;
-            lastCommand.rightV = -100;
-
-            ctr++;
-          }
-          else
-          {
-            ctr = 0;
-            //lastCommand.reset();
-            if(turnOnSpot(ts, -5, &lastCommand))
-              lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
-          }
+        if(ctr++ > 50)
+        {              
+          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
         }
-        else if(irL < 300)
+        else
         {
-          Serial.println("need to turn right");
-
-          if(ctr < 500)
-          {
-            lastCommand.leftV = -100;
-            lastCommand.rightV = -100;
-            ctr++;
-          }
-          else 
-          {
-            ctr = 0;
-            lastCommand.reset();
-            if(turnOnSpot(ts, -5, &lastCommand))
-              lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
-          }
-        }
-        else 
-        {
-          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);  
+          state = 2;  
         }
       }
       else
       {
-        Serial.println("driving straight");
-        lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
+          lastCommand = wallFollow(initialYaw, 20, 200, lastCommand);
       }
+//        if(irL > 800) // too far right
+//        {
+//          Serial.println("need to turn left");
+//          //reverse, turn CCW, forward
+//          if(ctr < 500)
+//          {
+//            lastCommand.leftV = -100;
+//            lastCommand.rightV = -100;
+//
+//            ctr++;
+//          }
+//          else
+//          {
+//            ctr = 0;
+//            //lastCommand.reset();
+//            if(turnOnSpot(ts, -5, &lastCommand))
+//          }
+//        }
+//        else if(irL < 300)
+//        {
+//          Serial.println("need to turn right");
+//
+//          if(ctr < 500)
+//          {
+//            lastCommand.leftV = -100;
+//            lastCommand.rightV = -100;
+//            ctr++;
+//          }
+//          else 
+//          {
+//            ctr = 0;
+//            lastCommand.reset();
+//            if(turnOnSpot(ts, -5, &lastCommand))
+//              lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
+//          }
+//        }
+//        else 
+//        {
+//          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);  
+//        }
+//      }
+//      else
+//      {
+//        Serial.println("driving straight");
+//        lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
+//      }
     }
     else if(state == 2)
     { 
@@ -133,8 +163,25 @@ struct RampClimber
       }
       
       lastCommand = translateWithinLimits(lastCommand);
+
+      // check flats for end conditions
+      const int YAW_FLAT_THRESH = 10;
+      if(getYaw() < YAW_FLAT_THRESH)
+      {
+        if(!isFlat) 
+          flatCounter++;
+        
+        isFlat = 1;
+      }
+      else
+        isFlat = 0;
+
+      if(flatCounter > 1)
+        _isDone = true;
+        
     }
-      return lastCommand;
+    
+    return _isDone ? MotorCommand() : lastCommand;
   }  
   
 };
