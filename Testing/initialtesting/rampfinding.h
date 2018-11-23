@@ -7,90 +7,127 @@ const double FWDIST = 27;
 const double ROB_OFFSET = 8;
 const double SWDIST = 25;
 const int GOAL_AVG = 250;
+const int SW_THRESH = 2;
 
-struct RampFinder 
+struct RampFinder
 {
-  TurnState ts;
-  double initialYaw, initialPitch, initialRoll;
-  int state = 0;
+	TurnState ts;
+	double initialYaw, initialPitch, initialRoll;
+	int state = 0;
+	int auccess_counter = 0;
 
-  bool isDone() { return true; }
-  
-  MotorCommand run(MotorCommand lastCommand)
-  {  
-      if(state == 0)
-      { // drive straight until front ir below threshold
-        
-        if(frontIr.getDist() < FWDIST)
-        {
-          Serial.println("Entering state 1");
-          state = 1;
-          ts.reset();
-          lastCommand = MotorCommand();
-        }
-        else
-        {
-          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
-        }
-      }
-      else if(state == 1)
-      { // 90 deg turn CCW
-        if(turnOnSpot(ts, -90, &lastCommand)) 
-        { 
-          Serial.println("Entering state 2");
-          state = 2;
-          initialYaw = getYaw();
-          lastCommand.reset();
-        }
-      }
-      else if(state == 2)
-      { // Follow the wall!
-        if(frontIr.getDist() < SWDIST)
-        {
-          Serial.println("Entering state 3");
-          state = 3;
-          lastCommand.reset();
-          ts.reset();
-        }
-        else
-        {
-          lastCommand = wallFollow(initialYaw, FWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
-        }
-      }
-      else if(state == 3)
-      { // 90 deg turn CCW
-        if(turnOnSpot(ts, -90, &lastCommand)) 
-        {
-          Serial.println("Entering state 4");
-          state = 4;
-          initialYaw = getYaw();
-          initialPitch = getPitch();
-          initialRoll = getRoll();
-          lastCommand.reset();
-        } 
-      }
-      else if(state == 4)
-      { // drive forward until make contact with ramp
-        const double PITCH_THRESHOLD = 10;
-        // drive along the wall until we get that ramp booiiis
-        if(abs(getPitch() - initialPitch) > PITCH_THRESHOLD)
-        {
-          Serial.print(getPitch());
-          Serial.print(" ");
-          Serial.println(getRoll());
-          lastCommand.reset();
-        }
-        else
-        {
-          lastCommand = wallFollow(initialYaw, SWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
-        }
-      }
+	double errorSum = 0;
+	double lastError = 0;
 
-    return lastCommand;
-  }
-  
+	bool isDone() { return true; }
+
+	MotorCommand run(MotorCommand lastCommand)
+	{
+		if (state == 0)
+		{ // drive straight until front ir below threshold
+
+			if (frontIr.getDist() < FWDIST)
+			{
+				Serial.println("Entering state 1");
+				state = 1;
+				ts.reset();
+				lastCommand = MotorCommand();
+			}
+			else
+			{
+				lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
+			}
+		}
+		else if (state == 1)
+		{ // 90 deg turn CCW
+			if (turnOnSpot(ts, -90, &lastCommand))
+			{
+				Serial.println("Entering state 2");
+				state = 2;
+				initialYaw = getYaw();
+				lastCommand.reset();
+			}
+		}
+		else if (state == 2)
+		{
+			// Follow the wall!
+			//implementing control to ensure our error is less than 1 cm
+
+			int error = frontIr.getDist() - SWDIST;
+
+			if (frontIr.getDist() < SW_DIST)
+			{
+				state = 3;
+				// success_counter++;
+			}
+			else if (state == 3)
+			{
+				if (abs(error) < SW_THRESH)
+				{
+					success_counter++;
+				}
+				else
+				{
+					success_counter = 0;
+
+					//move motors + or - to reduce the error
+					const double Kp = 5, Ki = 0.1;
+
+					// prevent overshoot from integral gain
+					if (error*lastError < 0) errorSum = 0;
+
+					errorSum += Ki * error;
+					double result = Kp * error + errorSum;
+
+					lastCommand.set(result, result);
+				}
+
+				if (success_counter > 2)
+				{
+					Serial.println("Entering state 3");
+					state = 4;
+					lastCommand.reset();
+					ts.reset();
+				}
+			}
+			else
+			{
+				lastCommand = wallFollow(initialYaw, FWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
+			}
+		}
+		else if (state == 4)
+		{ // 90 deg turn CCW
+			if (turnOnSpot(ts, -90, &lastCommand))
+			{
+				Serial.println("Entering state 4");
+				state = 5;
+				initialYaw = getYaw();
+				initialPitch = getPitch();
+				initialRoll = getRoll();
+				lastCommand.reset();
+			}
+		}
+		else if (state == 5)
+		{ // drive forward until make contact with ramp
+			const double PITCH_THRESHOLD = 10;
+			// drive along the wall until we get that ramp booiiis
+			if (abs(getPitch() - initialPitch) > PITCH_THRESHOLD)
+			{
+				Serial.print(getPitch());
+				Serial.print(" ");
+				Serial.println(getRoll());
+				lastCommand.reset();
+			}
+			else
+			{
+				lastCommand = wallFollow(initialYaw, SWDIST - ROB_OFFSET, GOAL_AVG, lastCommand);
+			}
+		}
+
+		return lastCommand;
+	}
+
 };
-
 
 // drives straight until it sees a wall, then turns, and starts wall following..
 // not really a utility function, this needs to move
