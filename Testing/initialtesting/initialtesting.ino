@@ -3,6 +3,7 @@
 #include "rampfinding.h"
 #include "rampclimbing.h"
 #include "basefinding.h"
+#include "homefinding.h"
 
 #include "Adafruit_BNO055.h"
 
@@ -51,16 +52,16 @@ void setup()
   Serial.println("Finished setup");
 }
 
-enum Section { FindRamp, ClimbRamp, BaseFinding };
+enum Section { FindRamp, ClimbRamp, BaseFinding , comingHome};
 
 unsigned loopCounter = 0;
 
 RampFinder rampFinder;
 RampClimber rampClimber;
 BaseFinder baseFinder;
+HomeFinder homeFinder;
 
 const bool TEST_SEPARATE = true;
-Section currentSection = ClimbRamp;
 
 void killMotors()
 {
@@ -69,6 +70,7 @@ void killMotors()
 }
 
 TurnState ts;
+Section currentSection = comingHome;
 
 void loop() 
 {
@@ -151,6 +153,21 @@ void loop()
         } 
         else
           currentSection = BaseFinding;        
+      }
+
+      break;
+
+      case comingHome:
+      mc = homeFinder.run(mc);
+      if(homeFinder.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: climb ramp");
+          while(1) {}  
+        } 
+        else
+          currentSection = comingHome;        
       }
 
       break;
