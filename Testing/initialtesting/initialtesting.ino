@@ -7,11 +7,6 @@
 #include "Adafruit_BNO055.h"
 
 static MotorCommand mc;
-static TurnState ts;
-
-double initialYaw;
-double initialPitch;
-double initialRoll;
 
 void setup() 
 {
@@ -30,11 +25,7 @@ void setup()
     TCCR4B &= ~(0x07);
     TCCR4B |= 0x02;
   }
-
-  initialYaw = getYaw();
-  initialPitch = getPitch();
-  initialRoll = getRoll();
-  ts.reset();
+  
   Serial.println("Finished setup");
 }
 
@@ -62,6 +53,7 @@ void loop()
   
   bool shouldPrint = false;
   static unsigned counter = 0;
+
   if(++counter > 18) { shouldPrint = true; counter = 0; }
     
   switch(currentSection)

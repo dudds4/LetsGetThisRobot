@@ -1,11 +1,11 @@
 
-int IN1=4; //right
-int IN2=5; //right
-int ENA=10;
+int IN1=8; //right
+int IN2=7; //right
+int ENA=99;
 
 int IN3=6; //left
-int IN4=7; //left
-int ENA2=11;
+int IN4=5; //left
+int ENA2=99;
 void setup()
 {
  pinMode(IN1,OUTPUT);

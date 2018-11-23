@@ -12,6 +12,8 @@ void printCommand(MotorCommand mc);
 // utility for mapping positive / negative voltage to motor pins
 void setMotorVoltage(Motor m, int v);
 
+bool subsamplePrint(int ss);
+
 struct TurnState 
 {
   bool initialized = false;
@@ -51,5 +53,7 @@ MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand
 //MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
 
 MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand);
+
+bool reverse(MotorCommand lastCommand);
 
 #endif
