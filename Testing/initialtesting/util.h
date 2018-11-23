@@ -12,6 +12,8 @@ void printCommand(MotorCommand mc);
 // utility for mapping positive / negative voltage to motor pins
 void setMotorVoltage(Motor m, int v);
 
+bool subsamplePrint(int ss);
+
 struct TurnState 
 {
   bool initialized = false;

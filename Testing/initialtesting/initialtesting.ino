@@ -5,7 +5,6 @@
 #include "Adafruit_BNO055.h"
 
 static MotorCommand lastCommand;
-static TurnState ts;
 
 double initialYaw;
 double initialPitch;
@@ -23,10 +22,10 @@ void setup()
   if(changePWMFrequencies)
   {    
     // change up PWM frequencies for motor PWM pins
-    TCCR1B &= ~(0x07);
-    TCCR1B |= 0x02;
-    TCCR2B &= ~(0x07);
-    TCCR2B |= 0x02;
+    TCCR3B &= ~(0x07);
+    TCCR3B |= 0x02;
+    TCCR4B &= ~(0x07);
+    TCCR4B |= 0x02;
   }
 
   initialYaw = getYaw();

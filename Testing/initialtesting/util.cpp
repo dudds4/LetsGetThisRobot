@@ -1,5 +1,7 @@
 #include "util.h"
 
+  #define MAX_APPLIED 170
+  
 bool subsamplePrint(int ss)
 {
   static unsigned x = 0;
@@ -21,7 +23,7 @@ void printCommand(MotorCommand mc)
 void setMotorVoltage(Motor m, int v)
 {
   // this is because our motors are rated for 6V, and we have a 9V supply
-  #define MAX_APPLIED 170
+
   
    if(v > MAX_APPLIED) v = MAX_APPLIED;
    else if(v < -1*MAX_APPLIED) v = -1*MAX_APPLIED;

@@ -4,7 +4,8 @@
 const double IR_THRESH = 500;
 const double IMU_THRESH = 5;
 //const int GOAL_AVG = 250;
-const int DELTA = 5;
+const int DELTA_R = 15;
+const int DELTA_L = 20;
 
 struct RampClimber
 {
@@ -16,10 +17,10 @@ struct RampClimber
   
   MotorCommand run(MotorCommand lastCommand)
   {
-    double irL = rampIR_L.getRaw();
-    double irR = rampIR_R.getRaw();
+    double irL = rampIR_L.getMedian(); //for finding ramp initially
+    double irR = rampIR_R.getMedian(); //for driving on ramp
     double diff;
-    bool correction = false;
+
     bool onRamp = false;
 
     if(state == 0)
@@ -27,46 +28,44 @@ struct RampClimber
       initialYaw = getYaw();
       initialPitch = getPitch();
       lastCommand = MotorCommand();
-      ts.reset();
+      //lastCommand.leftV = 200;
+      //lastCommand.rightV = 200;
+      ts.reset(); 
       Serial.println("Finished state 0");
-      state = 1;
+      state = 2; //skip state 1 for testing
     }
     if(state == 1) 
     { // Getting on ramp
-      //Serial.print(initialPitch); Serial.print(" ");Serial.print(getPitch()); Serial.print(" ");Serial.print(initialPitch - getPitch()); 
+
       if(initialPitch - getPitch() > IMU_THRESH) //on the ramp
       {
-        Serial.print("irL: "); Serial.print(irL); Serial.print(" irR: "); Serial.println(irR); //Serial.print(" diff: "); Serial.println(irL - irR); 
-        if(irL - irR < -1*IR_THRESH) // too far right
+        if(irL > 900) // too far right
         {
           Serial.println("need to turn left");
           //reverse, turn CCW, forward
           if(ctr < 500)
           {
-            lastCommand.leftV = -50;
-            lastCommand.rightV = -50;
-           // if(reverse(lastCommand))
-              Serial.print("reverse "); Serial.print(lastCommand.leftV); Serial.print(" "); Serial.println(lastCommand.rightV);
+            lastCommand.leftV = -100;
+            lastCommand.rightV = -100;
+
             ctr++;
           }
           else
           {
             ctr = 0;
-            lastCommand.reset();
+            //lastCommand.reset();
             if(turnOnSpot(ts, -5, &lastCommand))
               lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
           }
         }
-        else if(irL - irR > IR_THRESH)
+        else if(irL < 300)
         {
           Serial.println("need to turn right");
 
           if(ctr < 500)
           {
-            lastCommand.leftV = -50;
-            lastCommand.rightV = -50;
-           // if(reverse(lastCommand))
-              Serial.print("reverse "); Serial.print(lastCommand.leftV); Serial.print(" "); Serial.println(lastCommand.rightV);
+            lastCommand.leftV = -100;
+            lastCommand.rightV = -100;
             ctr++;
           }
           else 
@@ -79,8 +78,7 @@ struct RampClimber
         }
         else 
         {
-          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
-          //state = 2;     test    
+          lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);  
         }
       }
       else
@@ -90,43 +88,51 @@ struct RampClimber
       }
     }
     else if(state == 2)
-    { // driving on ramp
-      //Serial.print("ir: "); Serial.print(irL); Serial.println(" "); Serial.println(irR); Serial.println(" "); Serial.println(irL - irR); 
-      //Serial.println("entered state 2");
-      if((irL - irR) < -1*IR_THRESH || correction) //need to turn left
+    { 
+      bool shouldPrint = subsamplePrint(20);
+      const int V_INC = 30;
+      const int V_DEC = 0;
+      const int DIFF_SAT = 100;
+      
+      // driving on ramp
+      if(shouldPrint)
       {
-        correction = true;
-        Serial.println("Need to turn left");
-        if(loopCtr++ < 5) 
-        {
-          lastCommand.rightV += DELTA;
-          //Serial.print(loopCtr); Serial.print(" ");
-        }   
-        else 
-        { //correction
-          
-          diff = initialYaw - getYaw();
-          Serial.print("Diff: "); Serial.print(diff); Serial.print(" "); Serial.println("Correcting");
-          
-          if ((diff > -180 && diff < -1*IMU_THRESH) || (diff < (360-IMU_THRESH) && diff > 180)) //need to speed up right still
-            lastCommand.rightV += DELTA;
-          else if((diff > IMU_THRESH && diff < 180) || (diff < -180 && diff > (-360 + IMU_THRESH))) 
-            lastCommand.leftV += DELTA;
-          else
-            correction = false;
-        }
-          
+        Serial.println(irR);
       }
-      else if (irL - irR > IR_THRESH) //need to turn right
+      
+      if(irR > 800) //need to turn left
       {
-        Serial.println("need to turn right");
-        lastCommand.leftV += DELTA;
+        if(shouldPrint) Serial.println("Turn left");
+
+        if(lastCommand.rightV < lastCommand.leftV)
+          lastCommand.rightV = lastCommand.leftV;
+
+        if(lastCommand.rightV - lastCommand.leftV < DIFF_SAT)
+        {
+          lastCommand.rightV += V_INC;
+          lastCommand.leftV -= V_DEC;          
+        }
+      }
+      else if (irR < 700) //need to turn right
+      {
+        if(shouldPrint) Serial.println("Turn right");
+
+        if(lastCommand.rightV > lastCommand.leftV)
+          lastCommand.leftV = lastCommand.rightV;  
+          
+        if(lastCommand.leftV - lastCommand.rightV < DIFF_SAT)
+        {
+          lastCommand.leftV += V_INC;
+          lastCommand.rightV -= V_DEC;        
+        }  
       }
       else //straight
       {
-        Serial.println("driving straight");
+        if(shouldPrint) Serial.println("driving straight");
         lastCommand = driveStraight(initialYaw, lastCommand, GOAL_AVG);
       }
+      
+      lastCommand = translateWithinLimits(lastCommand);
     }
       return lastCommand;
   }  
