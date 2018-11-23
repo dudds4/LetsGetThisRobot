@@ -3,15 +3,15 @@
 Motor motorLeft = 
 {
   .en = 99,
-  .in1 = 8,
-  .in2 = 7,
+  .in1 = 5,
+  .in2 = 6,
 };
 
 Motor motorRight = 
 {
   .en = 99,
-  .in1 = 6,
-  .in2 = 5
+  .in1 = 7,
+  .in2 = 8
 };
 
 void initMotor(Motor m)

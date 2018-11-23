@@ -8,9 +8,31 @@
 
 static MotorCommand mc;
 
+#define BTN_HI 23
+#define BTN_LOW 24
+#define BTN_SGL 25
+
+double initialYaw;
+
 void setup() 
 {
   Serial.begin(9600);
+
+  pinMode(BTN_HI, OUTPUT);
+  pinMode(BTN_LOW, OUTPUT);
+  pinMode(BTN_SGL, INPUT);
+  delay(1);
+  digitalWrite(BTN_HI, HIGH);
+  digitalWrite(BTN_LOW, LOW);
+  unsigned counter = 0;
+  while(counter < 40)
+  {
+    if(digitalRead(BTN_SGL) == HIGH) counter++;
+    else counter = 0;
+    delay(1);   
+  }
+
+  initialYaw = getYaw();
   
   initializeIMU();
   initializeIR();
@@ -38,7 +60,15 @@ RampClimber rampClimber;
 BaseFinder baseFinder;
 
 const bool TEST_SEPARATE = true;
-Section currentSection = FindRamp;
+Section currentSection = ClimbRamp;
+
+void killMotors()
+{
+  setMotorVoltage(motorLeft, 0);
+  setMotorVoltage(motorRight, 0);  
+}
+
+TurnState ts;
 
 void loop() 
 {
@@ -55,7 +85,18 @@ void loop()
   static unsigned counter = 0;
 
   if(++counter > 18) { shouldPrint = true; counter = 0; }
-    
+
+//  if(turnOnSpot(ts, 90, &mc))
+//  {
+//    killMotors();
+//    while(1) ;
+//  }
+//    
+//  setMotorVoltage(motorLeft, mc.leftV);
+//  setMotorVoltage(motorRight, mc.rightV);
+//
+//  return;
+  
   switch(currentSection)
   {
     case FindRamp:
@@ -65,25 +106,34 @@ void loop()
         if(TEST_SEPARATE)
         {
           Serial.println("Completed section: find ramp");
+          killMotors();
           while(1) {}  
         } 
         else
+        {
+          Serial.println("Entering Climb Ramp State"); 
           currentSection = ClimbRamp;
+        }
         
       }
       break;
 
     case ClimbRamp:
+
       mc = rampClimber.run(mc);
       if(rampClimber.isDone())
       {
         if(TEST_SEPARATE)
         {
           Serial.println("Completed section: climb ramp");
+          killMotors();
           while(1) {}  
         } 
         else
-          currentSection = BaseFinding;
+        {
+          currentSection = BaseFinding;    
+          Serial.println("Entering Find Base State");  
+        }
         
       }
       break;
@@ -92,9 +142,11 @@ void loop()
       mc = baseFinder.run(mc);
       if(baseFinder.isDone())
       {
+        Serial.println("Basefinder done");
         if(TEST_SEPARATE)
         {
-          Serial.println("Completed section: climb ramp");
+          Serial.println("Completed section: base finding");
+          killMotors();
           while(1) {}  
         } 
         else
@@ -111,6 +163,3 @@ void loop()
   setMotorVoltage(motorLeft, mc.leftV);
   setMotorVoltage(motorRight, mc.rightV);
 }
-
-
-#include "basefinding.h"

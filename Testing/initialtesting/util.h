@@ -4,6 +4,8 @@
 #include "nav.h"
 #include "sensors.h"
 
+#define MAX_APPLIED 170
+
 //sensors_event_t imuWF; //wall follow
 
 // utility for printing a motor command to serial

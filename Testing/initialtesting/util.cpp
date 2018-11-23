@@ -11,8 +11,6 @@
 #ifndef LIMIT
 #define LIMIT(x, high, low) (MAX(MIN(x, high),low))
 #endif
-
-#define MAX_APPLIED 170
   
 bool subsamplePrint(int ss)
 {
@@ -80,7 +78,7 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   {
     ts.initialYaw = getYaw();
     ts.lastYaw = ts.initialYaw;
-    ts.goalYaw = ts.initialYaw + deg + ts.lastError;
+    ts.goalYaw = ts.initialYaw + deg;
     ts.errorSum = 0;
     ts.lastError = 0;
     mc->reset();
@@ -100,8 +98,8 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   // compute directions to turn
   double diff =  ts.goalYaw - yaw;
 
-  Serial.print(diff);
-  Serial.print(" -- ");
+//  Serial.print(diff);
+//  Serial.print(" -- ");
 
   // this line prevents overshooting because of built up I gain
   if(diff*ts.lastError < 0) ts.errorSum = 0;
@@ -111,7 +109,7 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   double stictionFactor = 1 / ( 1 + vel*vel);
   
   // case 1: we've finished the turn
-  const double DONE_THRESHOLD = 0.6;
+  const double DONE_THRESHOLD = 1.8;
   if(abs(diff) < DONE_THRESHOLD && abs(ts.lastError) < DONE_THRESHOLD)
   {
       mc->leftV = 0;
@@ -121,23 +119,24 @@ bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
   ts.lastError = diff;
 
   // case 2, PI control
-  const double Kp = 4.2, Ki = 0.25;
-  ts.errorSum += Ki * diff;
+  const double Kp = 0.9, Ki = 0.25;
+  ts.errorSum += Ki * diff * stictionFactor;
   double result = Kp * diff + ts.errorSum; 
   
   // apply stiction
-  const int STICTION_POS_R = 40, STICTION_POS_L = 95;
-  const int STICTION_NEG_R = -80, STICTION_NEG_L = -90;
+  const int STICTION_POS_R = 70, STICTION_POS_L = 70;
+  const int STICTION_NEG_R = -70, STICTION_NEG_L = -75;
   
   mc->leftV = result       + (stictionFactor*((result > 0) ? STICTION_POS_L : STICTION_NEG_L));
   mc->rightV = -1 * result + (stictionFactor*((result < 0) ? STICTION_POS_R : STICTION_NEG_R));
 
-  mc->leftV = LIMIT(mc->leftV, 200, -200);
-  mc->rightV = LIMIT(mc->rightV, 200, -200);
+  const int MAXES = 170;
+  mc->leftV = LIMIT(mc->leftV, MAXES, -1*MAXES);
+  mc->rightV = LIMIT(mc->rightV, MAXES, -1*MAXES);
 
 //  *mc = translateWithinLimits(*mc);
 
-  printCommand(*mc);
+//  printCommand(*mc);
   
   return false;
 }
@@ -214,7 +213,6 @@ MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int go
 
 MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand, int goalAvg)
 {
-
   double diff = initialAngle - getYaw();
 
   const int DIFF_THRESH = 5;
@@ -226,23 +224,24 @@ MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand
     {   
         // Robot turned left
         //speed up left motor
-        lastCommand.rightV += V_STEP;
+        lastCommand.rightV -= V_STEP;
     }
     else if ((diff > -180 && diff < -1*DIFF_THRESH) || (diff < (360-DIFF_THRESH) && diff > 180)) 
     {   
         // Robot turned right
         //speed up right motor
-        lastCommand.leftV += V_STEP;
+        lastCommand.leftV -= V_STEP;
     }
   }
   else
   {
     // maybe slowly make rightV == leftV?
      double avg = (lastCommand.leftV + lastCommand.rightV) / 2.0;
+     
      if(avg == 0)
      {
-       lastCommand.leftV =  20;
-       lastCommand.rightV = 20;
+       lastCommand.leftV =  -20;
+       lastCommand.rightV = -20;
      }
      else
      {
@@ -259,7 +258,7 @@ MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand
 
 MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand)
 {
-  bool shouldPrint = 0 && subsamplePrint(20);
+  bool shouldPrint = subsamplePrint(20);
   
   double angle = (getYaw() - initialAngle)*M_PI/180.0;
   if(angle > M_PI) angle -= 2*M_PI;
@@ -270,12 +269,18 @@ MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorComm
   const double DIFF_THRESH = 5;
   const double ANGLE_STEP = 10;
   
-  const double Kdiff = 10;
-  const double Kangle = 20; // 20
+  const double Kdiff = 3.333;
+  const double Kangle = 6.666; // 20
 
-  const double ANGLE_THRESH = 10 *M_PI/180.0;
+  const double ANGLE_THRESH = 7 * M_PI/180.0;
   const double A_ = 9 / (ANGLE_THRESH*ANGLE_THRESH);
-  
+
+  if(angle > ANGLE_THRESH / 2 && lastCommand.rightV < lastCommand.leftV)
+  { lastCommand.rightV = lastCommand.leftV; }  
+  else if(angle < -1 * ANGLE_THRESH / 2 && lastCommand.leftV < lastCommand.rightV)
+  { lastCommand.leftV = lastCommand.rightV; }
+
+  // apply gains
   double diff_gain = 1/(1+angle*angle*A_);
   double angle_gain = 1 - diff_gain;
 
