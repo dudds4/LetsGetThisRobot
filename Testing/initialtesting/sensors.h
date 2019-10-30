@@ -1,28 +1,65 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#define ir1    0 // Front
-#define ir2    1 // Right side
+#include <Adafruit_BNO055.h>
+#include <math.h>
 
-uint16_t ir_data1 = 0;
-uint16_t ir_data2 = 0;
-
-void initializeIR() {
-  pinMode(ir1, INPUT);
-  pinMode(ir2, INPUT);
-}
-
-void initializeIMU(Adafruit_BNO055& bno)
+struct AveragedSensor
 {
-  /* Initialise the sensor */
-  if(!bno.begin()) 
-  {
-    Serial.print("No BNO055 detected!");
-    while(1);
-  }
+  #define SENSOR_FILTER_N 20
+  
+  AveragedSensor() = delete;
+  AveragedSensor(int p) : pin(p) {}
 
-  bno.setExtCrystalUse(true);
+  void refresh();
+  double getAvg() { return avg; }
+  unsigned getMedian();
+  
+protected:  
+  int pin;
+  unsigned int filterArray[SENSOR_FILTER_N];
+  double avg = 0;    
+};
 
+struct IrSensor : AveragedSensor
+{  
+  IrSensor() = delete;
+  IrSensor(int p) : AveragedSensor(p) {}
+
+  double getDist();
+};
+
+struct Antenna : AveragedSensor
+{
+    Antenna() = delete;
+    Antenna(int digpin, int readpin) : AveragedSensor(readpin), digPin(digpin) {}
+
+    unsigned getRaw();
+private:
+  int digPin;
+};
+
+/* Global Sensors Variables */
+extern Adafruit_BNO055 bno;
+extern IrSensor frontIr;
+extern IrSensor rightIr;
+
+extern Antenna rampIR_L;
+extern Antenna rampIR_R;
+
+// convenience function, initializes both ir sensor analog pins
+void initializeIR();
+
+// convenience function, calls IrSensor::refresh on both ir sensors
+bool getIR();
+
+// convert the analog value read from the arduino to cm
+inline double irAnalogToCm(int analogValue) 
+{ 
+  return 3986.7 * pow(analogValue, -0.919) - 4.5;
 }
+
+// initialize an IMU sensor
+void initializeIMU();
 
 #endif // SENSORS_H

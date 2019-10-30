@@ -2,8 +2,6 @@
 #define CONTROLS_H
 
 #include "nav.h"
-#include "myImu.h"
-#include "ir.h"
 #include "sensors.h"
 #include "util.h"
 
@@ -13,27 +11,16 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
 {
   const unsigned PERIOD = 10; 
   static unsigned counter = PERIOD;
-  unsigned int ir1Array[] = {0,0,0,0,0};
-  unsigned int ir2Array[] = {0,0,0,0,0};
-  if(++counter < PERIOD) {
-    for(int i = sizeof(ir1Array); i>0; i--) { //shift values
-      ir1Array[i] = ir1Array[i-1];
-      ir2Array[i] = ir2Array[i-1];
-    }
-    ir1Array[0] = analogRead(ir1);
-    ir2Array[0] = analogRead(ir2);
-    return lastCommand;
-  }
+
+  // if you want to run this control at a lower frequency, you can
+  // skip logic and just continue with previous command
+  // this is example code though, you can choose not to do this..
+  if(++counter < PERIOD) { return lastCommand; }
   counter = 0;
 
-  int sum = 0; 
-  int sum2 = 0;
-  for(int i = sizeof(ir1Array); i>0; i--) { //take avg and discard rly out-of-range values
-      sum = sum + ir1Array[i];
-      sum2 = sum2 + ir2Array[i];
-  }
-  double ir1Avg = sum / 5;
-  double ir2Avg = sum2 / 5;
+  getIR();
+  double ir1Avg = frontIr.getAvg();
+  double ir2Avg = rightIr.getAvg();
 
   /****** IMU stuff ******/
   static bool initialized = false;                   
@@ -45,6 +32,7 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
   initialized = 1; 
 	
   /*********************************** METAL WALL ***********************************/  
+  
  /* static TurnState ts;
   static MotorCommand* mc;
   ts.initialized = false;
@@ -74,14 +62,14 @@ MotorCommand wallFollow(Adafruit_BNO055& bno, MotorCommand lastCommand)
     if(irAnalogToCm(ir2Avg) > 33) { //ir sensor on left
       bool tos = turnOnSpot(ts, -10, mc);
       for(int i = 0; i < 4; i++) {
-        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
+//        MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
       }
     }
   }
 
   facingWall = initial_imu.orientation.x;
   
-  return driveStraight(bno, initial_imu, lastCommand);
+//  return driveStraight(bno, initial_imu, lastCommand);
 }
 
 MotorCommand climbRamp1(/* add params */) 

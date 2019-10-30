@@ -1,79 +1,171 @@
-#include "myImu.h"
 #include "sensors.h"
 #include "controls.h"
 
-#include <Adafruit_BNO055.h>
+#include "rampfinding.h"
+#include "rampclimbing.h"
+#include "basefinding.h"
+#include "homefinding.h"
+#include "Adafruit_BNO055.h"
 
-static MotorCommand newCommand;
-static MotorCommand lastCommand;
-static TurnState ts;
-//ts.initialized = false;
+static MotorCommand mc;
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
-sensors_event_t initial_imu;
+#define BTN_HI 23
+#define BTN_LOW 24
+#define BTN_SGL 25
 
-void setup() {
+double initialYaw;
+
+void setup() 
+{
   Serial.begin(9600);
-  
-//  initializeIMU(bno);
-  
-  pinMode(IN1,OUTPUT);
-  pinMode(IN2,OUTPUT); 
-  pinMode(IN3,OUTPUT); 
-  pinMode(IN4,OUTPUT); 
-  
-  // change up PWM frequencies for motor PWM pins
-  // Timer 3 for outputs 2/3/5
-  bool fastpwm = false;
 
-  if(fastpwm)
+  pinMode(BTN_HI, OUTPUT);
+  pinMode(BTN_LOW, OUTPUT);
+  pinMode(BTN_SGL, INPUT);
+  delay(1);
+  digitalWrite(BTN_HI, HIGH);
+  digitalWrite(BTN_LOW, LOW);
+  unsigned counter = 0;
+  while(counter < 40)
   {
-    // change prescaler
-    TCCR3B &= ~(0x07);
-    TCCR3B |= 0x02;
-  
-    // set wave form generation mode to phase correct
-    TCCR3A &= ~(0x03);
-    TCCR3B &= ~(0x18);
-    TCCR3A |= 0x01;
-    
-    
-    // Timer 4 for outputs 6,7,8  
-    TCCR4B &= ~(0x07);
-    TCCR4B |= 0x02;
-  
-    // set wave form generation mode to phase correct
-    TCCR4A &= ~(0x03);
-    TCCR4B &= ~(0x18);
-    TCCR4A |= 0x01;
+    if(digitalRead(BTN_SGL) == HIGH) counter++;
+    else counter = 0;
+    delay(1);   
   }
 
-
-//  lastCommand.leftV = 200;
-//  lastCommand.rightV = 200;
-   
+  initialYaw = getYaw();
+  
+  initializeIMU();
+  initializeIR();
+  initMotors();
+  
+  bool changePWMFrequencies = true;
+  if(changePWMFrequencies)
+  {    
+    // change up PWM frequencies for motor PWM pins
+    TCCR3B &= ~(0x07);
+    TCCR3B |= 0x02;
+    TCCR4B &= ~(0x07);
+    TCCR4B |= 0x02;
+  }
+  
+  Serial.println("Finished setup");
 }
 
-bool doneTurn = false;
+enum Section { FindRamp, ClimbRamp, BaseFinding , comingHome};
 
-void loop() {
-  ir_data1 = analogRead(ir1);
-  ir_data2 = analogRead(ir2);
+unsigned loopCounter = 0;
 
-  newCommand.rightV = 200;
-  newCommand.leftV= 200;
+RampFinder rampFinder;
+RampClimber rampClimber;
+BaseFinder baseFinder;
+HomeFinder homeFinder;
 
-//  if(!doneTurn)
-//    doneTurn = turnOnSpot(ts, 90, &newCommand);
-//  else
-//  {
-//   setMotorVoltage(ENA, IN1, IN2, 0);
-//   setMotorVoltage(ENA2, IN3, IN4, 0);
-//   while(1){}  
-//  }
+const bool TEST_SEPARATE = true;
+
+void killMotors()
+{
+  setMotorVoltage(motorLeft, 0);
+  setMotorVoltage(motorRight, 0);  
+}
+
+TurnState ts;
+Section currentSection = comingHome;
+
+void loop() 
+{
+  if(loopCounter++ < 20) 
+  {
+    getIR();
+    delay(1);
+    return;
+  }
   
-   setMotorVoltage(ENA, IN1, IN2, newCommand.rightV);
-   setMotorVoltage(ENA2, IN3, IN4, newCommand.leftV);
+  loopCounter = 0;
   
-  delay(20);
+  bool shouldPrint = false;
+  static unsigned counter = 0;
+
+  if(++counter > 18) { shouldPrint = true; counter = 0; }
+  
+  switch(currentSection)
+  {
+    case FindRamp:
+      mc = rampFinder.run(mc);      
+      if(rampFinder.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: find ramp");
+          killMotors();
+          while(1) {}  
+        } 
+        else
+        {
+          Serial.println("Entering Climb Ramp State"); 
+          currentSection = ClimbRamp;
+        }
+        
+      }
+      break;
+
+    case ClimbRamp:
+
+      mc = rampClimber.run(mc);
+      if(rampClimber.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: climb ramp");
+          killMotors();
+          while(1) {}  
+        } 
+        else
+        {
+          currentSection = BaseFinding;    
+          Serial.println("Entering Find Base State");  
+        }
+        
+      }
+      break;
+
+    case BaseFinding:
+      mc = baseFinder.run(mc);
+      if(baseFinder.isDone())
+      {
+        Serial.println("Basefinder done");
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: base finding");
+          killMotors();
+          while(1) {}  
+        } 
+        else
+          currentSection = BaseFinding;        
+      }
+
+      break;
+
+      case comingHome:
+      mc = homeFinder.run(mc);
+      if(homeFinder.isDone())
+      {
+        if(TEST_SEPARATE)
+        {
+          Serial.println("Completed section: climb ramp");
+          while(1) {}  
+        } 
+        else
+          currentSection = comingHome;        
+      }
+
+      break;
+
+    default: 
+      mc.reset();
+      break;
+  }
+
+  setMotorVoltage(motorLeft, mc.leftV);
+  setMotorVoltage(motorRight, mc.rightV);
 }

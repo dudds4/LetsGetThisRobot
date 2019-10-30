@@ -1,8 +1,20 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "myImu.h"
-#include "controls.h"
+#include "nav.h"
+#include "sensors.h"
+
+#define MAX_APPLIED 170
+
+//sensors_event_t imuWF; //wall follow
+
+// utility for printing a motor command to serial
+void printCommand(MotorCommand mc);
+
+// utility for mapping positive / negative voltage to motor pins
+void setMotorVoltage(Motor m, int v);
+
+bool subsamplePrint(int ss);
 
 
 void setMotorVoltage(int EN, int IN1, int IN2, int v)
@@ -27,87 +39,43 @@ void setMotorVoltage(int EN, int IN1, int IN2, int v)
 struct TurnState 
 {
   bool initialized = false;
-  int initialYaw;
-  int lastYaw;
-  int goalYaw;
+  double initialYaw;
+  double lastYaw;
+  double goalYaw;
+  double errorSum = 0;
+  double lastError = 0;
+  void reset() { initialized = false; }
 };
 
-Adafruit_BNO055 g_bno;
+// returns yaw read from global imu sensor
+double getYaw();
+double getPitch();
+double getRoll();
 
-int getYaw()
-{
-    sensors_event_t imu_event; 
-    g_bno.getEvent(&imu_event);
-    return imu_event.orientation.x;
-}
+// runs a turn, outputs to MotorCommand* mc, returns true when turn is complete
+bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc);
 
-bool turnOnSpot(TurnState &ts, int deg, MotorCommand* mc)
-{
-  if(!ts.initialized)
-  {
-    Serial.println("initializing");
-    ts.initialYaw = getYaw();
-    ts.lastYaw = ts.initialYaw;
-    ts.goalYaw = ts.initialYaw + deg;
-    ts.initialized = true;
-  }
+#ifndef MAX
+#define MAX(a,b) (a > b ? a : b)
+#endif
 
-  int yaw = getYaw();
+#ifndef MIN
+#define MIN(a,b) (a > b ? b : a)
+#endif
 
-  // check wrap around
-  const int WRAP_THRESH = 30;
-  
-  // case 1: we've wrapped around from 360 to 0
-  if(ts.lastYaw > (360-WRAP_THRESH) && yaw < WRAP_THRESH)
-    ts.goalYaw -= 360;
-  // case 2: we've wrapped around from 0 to 360
-  else if(ts.lastYaw < WRAP_THRESH && yaw > (360-WRAP_THRESH))
-    ts.goalYaw += 360;
+MotorCommand translateWithinLimits(MotorCommand c);
 
-  ts.lastYaw = yaw;
+// -- utility functions for common navigation tasks --
 
-  // compute directions to turn
-  int diff =  ts.goalYaw - yaw;
+// drives straight using IMU to correct orientation
+MotorCommand driveStraight(double initialAngle, MotorCommand lastCommand, int goalAvg);
+MotorCommand driveStraightBackward(double initialAngle, MotorCommand lastCommand, int goalAvg);
 
-  Serial.print(yaw);
-  Serial.print(" ");
-  Serial.println(ts.goalYaw);
-  
-  // case 1: we've finished the turn
-  const int DONE_THRESHOLD = 3;
-  if(abs(diff) < DONE_THRESHOLD)
-  {
-      mc->leftV = 0;
-      mc->rightV = 0;
-      return true;
-  }
+// drives straight using the mounted IR to travel a straight line
+//MotorCommand genWallFollow(double dist, int goalAvg, MotorCommand lastCommand);
 
-  const int MOTOR_V = 200;
-  
-  // case 2: we need to turn CW
-  if(diff < 0)
-  {
-    mc->leftV = MOTOR_V;
-    mc->rightV = -1 * MOTOR_V;
-  }
-  // case 3: we need to turn CCW
-  else
-  {
-    mc->leftV = -1 * MOTOR_V;
-    mc->rightV = MOTOR_V;
-  }
+MotorCommand wallFollow(double initialAngle, double dist, int goalAvg, MotorCommand lastCommand);
 
-
-  return false;
-}
-
-bool wallOnRight(TurnState ts, MotorCommand* mc, Adafruit_BNO055& bno, sensors_event_t initial_imu, MotorCommand lastCommand) { //make sure wall is on right at 20 cm away (use second ir)
-  bool tos = turnOnSpot(ts, 10, mc);
-  for(int i = 0; i < 4; i++) {
-    MotorCommand drvStr = driveStraight(bno, initial_imu, lastCommand);
-  }
-  return turnOnSpot(ts, -10, mc);
-  
-}
+bool reverse(MotorCommand lastCommand);
 
 #endif
