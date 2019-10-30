@@ -104,7 +104,6 @@ MotorCommand findRamp2(TurnState ts, MotorCommand mc*, bno, initial_imu, lastCom
     }  
 }
 
-<<<<<<< HEAD
 MotorCommand wallZigzag(Adafruit_BNO055& bno, sensors_event_t initial, MotorCommand lastCommand) 
 {
   //set left motor speed 
@@ -162,15 +161,6 @@ MotorCommand wallZigzag(Adafruit_BNO055& bno, sensors_event_t initial, MotorComm
   
 }
 
-MotorCommand search(/* add params */) {}
-=======
-MotorCommand search(/* add params */) 
-{
-  
-  
-}
->>>>>>> 4988f343a131038eb22ed205bf14a63768f5de58
-
 MotorCommand return1(/* add params */) 
 {}
 
@@ -180,8 +170,4 @@ MotorCommand ramp2(/* add params */)
 MotorCommand return2(/* add params */) 
 {}
 
-<<<<<<< HEAD
 #endif // CONTROLS_H
-=======
-#endif // CONTROLS_H
->>>>>>> 4988f343a131038eb22ed205bf14a63768f5de58
